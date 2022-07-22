@@ -4,6 +4,7 @@ Firmware Bundle-and-Protect Tool
 """
 import argparse
 import struct
+from Crypto.Cipher import AES
 
 
 def protect_firmware(infile, outfile, version, message):
@@ -20,9 +21,25 @@ def protect_firmware(infile, outfile, version, message):
     # Append firmware and message to metadata
     firmware_blob = metadata + firmware_and_message
 
+    # load secret key from file(first 16 bytes)
+    with open('secret_build_output.txt', 'rb') as secrets_file:
+        aes_key = secrets_file.read(16)
+    
+    # Create cipher object
+    cipher = AES.new(aes_key, AES.MODE_GCM)
+    # assert that version is an integer
+    cipher.update(version)
+
+
+    nonce = cipher.nonce
+
+    encrypted_firmware_blob, tag = cipher.encrypt_and_digest(firmware_blob)
+
+    
+
     # Write firmware blob to outfile
     with open(outfile, 'wb+') as outfile:
-        outfile.write(firmware_blob)
+        outfile.write(encrypted_firmware_blob + tag + nonce)
 
 
 if __name__ == '__main__':
