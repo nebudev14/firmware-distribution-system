@@ -13,7 +13,7 @@ def protect_firmware(infile, outfile, version, message):
     with open(infile, 'rb') as fp:
         firmware = fp.read()
         
-    # load secret keys from file
+    # Load secret keys from file
     with open('secret_build_output.txt', 'rb') as secrets_file:
         aes_key = secrets_file.read(16)
         priv_key = secrets_file.read(48) 
@@ -21,41 +21,40 @@ def protect_firmware(infile, outfile, version, message):
         vkey = secrets_file.read(64)
 
     # Append null-terminated message to end of firmware
+    # Current frame: x Firmware + x Message + 1 Null
     firmware_and_message = firmware + message.encode() + b'\00'
 
     # Pack version and size into two little-endian shorts
     metadata = struct.pack('<HH', version, len(firmware))
 
     # Append firmware and message to metadata
+    # Current frame: 2 Version + 2 Firmware Length + x Firmware + x Message + 1 Null
     firmware_blob = metadata + firmware_and_message
     
     # pad firmware data to 64 
     firmware_blob += get_random_bytes(64 - len(firmware_blob)%64)
 
-    # sign
+    # Sign using ECC rfc8032
     ecc_key = ECC.import_key(priv_key)
     signer = eddsa.new(ecc_key, 'rfc8032')
+    
+    # Current frame: 2 Version + 2 Firmware Length + x Firmware + x Message + 1 Null + x Padding + 64 ECC key
     signed_firmware = firmware_blob + signer.sign(firmware_blob)
     
     
     # Create cipher object
     cipher = AES.new(aes_key, AES.MODE_GCM)
-    # assert that version is an integer
-    cipher.update(version)
-    
-
     nonce = cipher.nonce
-    
     encrypted_firmware_blob, tag = cipher.encrypt_and_digest(signed_firmware)
     
+    # Current frame: 2 Version + 2 Firmware Length + x Firmware + x Message + 1 Null + x Padding + 64 ECC key + 16 Tag + 16 Nonce
     output = encrypted_firmware_blob + tag + nonce
     
-    # vigenere cipher
-    
-    # pad the vkey to fit all of the data
+    # Pad the Vigenere Key to fit all of the data
     vkey *= len(output)//len(vkey)
     vkey += vkey[:len(output)%len(vkey)]
     
+    # XOR Vigenere Key with output frame
     output = bytes(a ^ b for a, b in zip(output, vkey))
     
     # last piece of 32 byte padding
