@@ -12,6 +12,13 @@ def protect_firmware(infile, outfile, version, message):
     # Load firmware binary from infile
     with open(infile, 'rb') as fp:
         firmware = fp.read()
+        
+    # load secret keys from file
+    with open('secret_build_output.txt', 'rb') as secrets_file:
+        aes_key = secrets_file.read(16)
+        priv_key = secrets_file.read(48) 
+        pub_key = secrets_file.read(44)
+        vkey = secrets_file.read(16)
 
     # Append null-terminated message to end of firmware
     firmware_and_message = firmware + message.encode() + b'\00'
@@ -21,15 +28,20 @@ def protect_firmware(infile, outfile, version, message):
 
     # Append firmware and message to metadata
     firmware_blob = metadata + firmware_and_message
+    
+    
+    # vigenere cipher
+    
+    # pad the vkey to fit all of the data
+    vkey *= len(firmware)//len(vkey)
+    vkey += vkey[:len(firmware)%len(vkey)]
+    
+    firmware_blob = bytes(a ^ b for a, b in zip(firmware_blob, vkey))
 
     # sign
     key = ECC.import_key(open('secret_build_output.txt').read())
     signer = eddsa.new(key, 'rfc8032')
     
-    
-    # load secret key from file(first 16 bytes)
-    with open('secret_build_output.txt', 'rb') as secrets_file:
-        aes_key = secrets_file.read(16)
     
     # Create cipher object
     cipher = AES.new(aes_key, AES.MODE_GCM)
