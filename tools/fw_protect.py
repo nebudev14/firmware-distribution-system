@@ -25,6 +25,7 @@ def protect_firmware(infile, outfile, version, message):
     # sign
     key = ECC.import_key(open('secret_build_output.txt').read())
     signer = eddsa.new(key, 'rfc8032')
+    signed_firmware = firmware_blob + signer.sign(firmware_blob)
     
     
     # load secret key from file(first 16 bytes)
@@ -39,7 +40,7 @@ def protect_firmware(infile, outfile, version, message):
 
     nonce = cipher.nonce
     
-    encrypted_firmware_blob, tag = cipher.encrypt_and_digest(firmware_blob)
+    encrypted_firmware_blob, tag = cipher.encrypt_and_digest(signed_firmware)
     
     
 
