@@ -28,6 +28,9 @@ def protect_firmware(infile, outfile, version, message):
 
     # Append firmware and message to metadata
     firmware_blob = metadata + firmware_and_message
+    
+    # pad firmware data to 64 
+    firmware_blob += Crypto.Random.get_random_bytes(64 - len(firmware_blob)%64)
 
     # sign
     ecc_key = ECC.import_key(priv_key)
@@ -54,13 +57,6 @@ def protect_firmware(infile, outfile, version, message):
     vkey += vkey[:len(output)%len(vkey)]
     
     output = bytes(a ^ b for a, b in zip(output, vkey))
-    
-    # null terminate
-    output += b'\00'
-    
-    # pad output
-    output += Crypto.Random.get_random_bytes(64 - len(output)%64)
-    
     
     # Write firmware blob to outfile
     with open(outfile, 'wb+') as outfile:
