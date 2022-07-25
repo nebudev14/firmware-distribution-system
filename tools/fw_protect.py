@@ -30,7 +30,7 @@ def protect_firmware(infile, outfile, version, message):
     firmware_blob = metadata + firmware_and_message
 
     # sign
-    key = ECC.import_key(open('secret_build_output.txt').read())
+    key = ECC.import_key(priv_key)
     signer = eddsa.new(key, 'rfc8032')
     signed_firmware = firmware_blob + signer.sign(firmware_blob)
     
