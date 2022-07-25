@@ -20,3 +20,9 @@
 
 
 Team Arthur Intialization Vector Robinson presents: The Super Secure Embedded Bootloader Firmware Thing<sup>TM</sup>
+
+Frame Size:
+```
+x represents some number of padding depends on the how large the encoding of firmware is
+| 2 bytes Version | 2 bytes Firmware Length | x Firmware | x Message | 1 Null | x Padding | 64 ECC key | 16 Tag | 16 Nonce |
+```
