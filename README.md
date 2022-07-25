@@ -18,6 +18,7 @@
 
 ```
 
+![iv-txt.png](iv-txt.png)
 
 Team Arthur Intialization Vector Robinson presents: The Super Secure Embedded Bootloader Firmware Thing<sup>TM</sup>
 
