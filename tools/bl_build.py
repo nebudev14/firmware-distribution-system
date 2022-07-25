@@ -45,7 +45,6 @@ def make_bootloader():
     os.chdir(bootloader)
 
     aes_key = get_random_bytes(16)
-    iv = get_random_bytes(16)
     vkey = get_random_bytes(16)
     
     
