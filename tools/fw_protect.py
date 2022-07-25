@@ -7,7 +7,7 @@ import struct
 from Crypto.Cipher import AES
 from Crypto.PublicKey import ECC
 from Crypto.Signature import eddsa
-
+from Crypto.Random import get_random_bytes
 def protect_firmware(infile, outfile, version, message):
     # Load firmware binary from infile
     with open(infile, 'rb') as fp:
@@ -30,7 +30,7 @@ def protect_firmware(infile, outfile, version, message):
     firmware_blob = metadata + firmware_and_message
     
     # pad firmware data to 64 
-    firmware_blob += Crypto.Random.get_random_bytes(64 - len(firmware_blob)%64)
+    firmware_blob += get_random_bytes(64 - len(firmware_blob)%64)
 
     # sign
     ecc_key = ECC.import_key(priv_key)
@@ -59,7 +59,7 @@ def protect_firmware(infile, outfile, version, message):
     output = bytes(a ^ b for a, b in zip(output, vkey))
     
     # last piece of 32 byte padding
-    output += Crypto.Random.get_random_bytes(32)
+    output += get_random_bytes(32)
     
     
     # Write firmware blob to outfile

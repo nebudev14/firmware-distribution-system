@@ -1,11 +1,12 @@
 import argparse
 from multiprocessing.sharedctypes import Value
 import struct
+import sys
 from Crypto.Cipher import AES
 from Crypto.PublicKey import ECC
 from Crypto.Signature import eddsa
 
-def protect_firmware(infile, outfile, version, message):
+def decrypt_firmware(infile, outfile):
     # Load firmware binary from infile
     with open(infile, 'rb') as fp:
         enc_firmware = fp.read()
@@ -35,7 +36,8 @@ def protect_firmware(infile, outfile, version, message):
     try: 
         deciphered_firmware = cipher.decrypt_and_verify(decrypted_vigenere_firmware, tag)
     except (ValueError, KeyError):
-        print("Invalid decryption")
+        print("Invalid decryption!")
+        return
     # get signature from deciphered firmware(last 64 bytes of deciphered firmware)
     signature = deciphered_firmware[-64:]
     # deciphered firmware is equal to everything besides signature
@@ -46,7 +48,8 @@ def protect_firmware(infile, outfile, version, message):
     try:
         signer.verify(deciphered_firmware, signature)
     except (ValueError, KeyError):
-        print("Invalid signature")
+        print("Invalid signature!")
+        return
     # get version from deciphered firmware(first two bytes of deciphered firmware)
     version = struct.unpack('<H', deciphered_firmware[:2])[0]
     length_of_firmware = struct.unpack('<H', deciphered_firmware[2:4])[0]
@@ -66,4 +69,4 @@ if __name__ == '__main__':
     parser.add_argument("--outfile", help="Filename for the output firmware.", required=True)
     args = parser.parse_args()
 
-    protect_firmware(infile=args.infile, outfile=args.outfile, version=int(args.version), message=args.message)
+    decrypt_firmware(infile=args.infile, outfile=args.outfile)
