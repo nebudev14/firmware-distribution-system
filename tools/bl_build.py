@@ -12,6 +12,7 @@ import shutil
 import subprocess
 
 from Crypto.Random import get_random_bytes
+from Crypto.PublicKey import ECC
 
 FILE_DIR = pathlib.Path(__file__).parent.absolute()
 
@@ -45,12 +46,17 @@ def make_bootloader():
 
     aes_key = get_random_bytes(16)
 
-    # write aes key to file
+    key = ECC.generate(curve='ed25519')
+
+    private_key = key.export_key(format='DER')
+    public_key = key.public_key().export_key(format='DER')
+
+    # write keys to file
     with open('secret_build_output.txt', 'wb+') as f:
         f.write(aes_key)
-    
+        f.write(private_key)
     subprocess.call('make clean', shell=True)
-    status = subprocess.call(f'make KEY={arrayize(aes_key)}')
+    status = subprocess.call(f'make AES_KEY={arrayize(aes_key)} ECC_KEY={arrayize(private_key)}', shell=True)
 
     # Return True if make returned 0, otherwise return False.
     return (status == 0)
