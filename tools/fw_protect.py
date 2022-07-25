@@ -38,7 +38,7 @@ def protect_firmware(infile, outfile, version, message):
     ecc_key = ECC.import_key(priv_key)
     signer = eddsa.new(ecc_key, 'rfc8032')
     
-    # Current frame: 2 Version + 2 Firmware Length + x Firmware + x Message + 1 Null + x Padding + 64 ECC key
+    # Current frame: 2 Version + 2 Firmware Length + x Firmware + x Message + 1 Null + x Padding + 64 ECC signature
     signed_firmware = firmware_blob + signer.sign(firmware_blob)
     
     
