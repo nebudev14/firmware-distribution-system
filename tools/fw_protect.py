@@ -58,6 +58,10 @@ def protect_firmware(infile, outfile, version, message):
     
     output = bytes(a ^ b for a, b in zip(output, vkey))
     
+    # last piece of 32 byte padding
+    output += Crypto.Random.get_random_bytes(32)
+    
+    
     # Write firmware blob to outfile
     with open(outfile, 'wb+') as outfile:
         outfile.write(output)
