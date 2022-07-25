@@ -28,15 +28,6 @@ def protect_firmware(infile, outfile, version, message):
 
     # Append firmware and message to metadata
     firmware_blob = metadata + firmware_and_message
-    
-    
-    # vigenere cipher
-    
-    # pad the vkey to fit all of the data
-    vkey *= len(firmware)//len(vkey)
-    vkey += vkey[:len(firmware)%len(vkey)]
-    
-    firmware_blob = bytes(a ^ b for a, b in zip(firmware_blob, vkey))
 
     # sign
     key = ECC.import_key(open('secret_build_output.txt').read())
@@ -53,11 +44,19 @@ def protect_firmware(infile, outfile, version, message):
     
     encrypted_firmware_blob, tag = cipher.encrypt_and_digest(firmware_blob)
     
+    output = encrypted_firmware_blob + tag + nonce
     
+    # vigenere cipher
+    
+    # pad the vkey to fit all of the data
+    vkey *= len(output)//len(vkey)
+    vkey += vkey[:len(output)%len(vkey)]
+    
+    output = bytes(a ^ b for a, b in zip(output, vkey))
 
     # Write firmware blob to outfile
     with open(outfile, 'wb+') as outfile:
-        outfile.write(encrypted_firmware_blob + tag + nonce)
+        outfile.write(output)
 
 
 if __name__ == '__main__':
