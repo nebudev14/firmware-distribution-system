@@ -50,3 +50,13 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# other things for less pain
+.vscode
+*.ipynb_checkpoints
+.DS_Store
+.idea
+*.axf
+*.bin
+__pycache__
+secret_build_output.txt

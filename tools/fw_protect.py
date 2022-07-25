@@ -12,6 +12,13 @@ def protect_firmware(infile, outfile, version, message):
     # Load firmware binary from infile
     with open(infile, 'rb') as fp:
         firmware = fp.read()
+        
+    # load secret keys from file
+    with open('secret_build_output.txt', 'rb') as secrets_file:
+        aes_key = secrets_file.read(16)
+        priv_key = secrets_file.read(48) 
+        pub_key = secrets_file.read(44)
+        vkey = secrets_file.read(16)
 
     # Append null-terminated message to end of firmware
     firmware_and_message = firmware + message.encode() + b'\00'
@@ -28,10 +35,6 @@ def protect_firmware(infile, outfile, version, message):
     signed_firmware = firmware_blob + signer.sign(firmware_blob)
     
     
-    # load secret key from file(first 16 bytes)
-    with open('secret_build_output.txt', 'rb') as secrets_file:
-        aes_key = secrets_file.read(16)
-    
     # Create cipher object
     cipher = AES.new(aes_key, AES.MODE_GCM)
     # assert that version is an integer
@@ -42,11 +45,19 @@ def protect_firmware(infile, outfile, version, message):
     
     encrypted_firmware_blob, tag = cipher.encrypt_and_digest(signed_firmware)
     
+    output = encrypted_firmware_blob + tag + nonce
     
+    # vigenere cipher
+    
+    # pad the vkey to fit all of the data
+    vkey *= len(output)//len(vkey)
+    vkey += vkey[:len(output)%len(vkey)]
+    
+    output = bytes(a ^ b for a, b in zip(output, vkey))
 
     # Write firmware blob to outfile
     with open(outfile, 'wb+') as outfile:
-        outfile.write(encrypted_firmware_blob + tag + nonce)
+        outfile.write(output)
 
 
 if __name__ == '__main__':
