@@ -16,7 +16,7 @@ def decrypt_firmware(infile, outfile):
         aes_key = secrets_file.read(16)
         priv_key = secrets_file.read(48) 
         pub_key = secrets_file.read(44)
-        vkey = secrets_file.read(16)
+        vkey = secrets_file.read(64)
 
     # remove padding from enc_firmware(32 bytes)
     enc_firmware = enc_firmware[:-32]
