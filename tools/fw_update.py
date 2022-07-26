@@ -95,7 +95,7 @@ def main(ser, infile, debug):
         frame_fmt = '>H{}s'.format(length)
 
         # Construct frame.
-        frame = struct.pack(frame_fmt, length, data)
+        frame = struct.pack(frame_fmt, length, data + bytes(64 - length)) # Add padding if necessary
 
         if debug:
             print("Writing frame {} ({} bytes)...".format(idx, len(frame)))
