@@ -26,6 +26,10 @@ from serial import Serial
 
 RESP_OK = b'\x00'
 FRAME_SIZE = 16
+SIGNATURE_SIZE = 64
+NONCE_SIZE = 16
+AUTH_TAG_SIZE = 16
+VERIFY_SIZE = SIGNATURE_SIZE + NONCE_SIZE + AUTH_TAG_SIZE # Contains all the data we're using to ensure authenticity
 
 
 def send_metadata(ser, metadata, debug=False):
@@ -74,10 +78,12 @@ def main(ser, infile, debug):
         firmware_blob = fp.read()
 
     metadata = firmware_blob[:4]
-    firmware = firmware_blob[4:]
-
+    firmware = firmware_blob[4:len(firmware_blob)-()] # Exclude ECC signature, nonce, and auth tag
+    firmware_verify = firmware_blob[-VERIFY_SIZE:]
+    
+    # Send version number/firmware size
     send_metadata(ser, metadata, debug=debug)
-
+    
     for idx, frame_start in enumerate(range(0, len(firmware), FRAME_SIZE)):
         data = firmware[frame_start: frame_start + FRAME_SIZE]
 
@@ -92,7 +98,14 @@ def main(ser, infile, debug):
             print("Writing frame {} ({} bytes)...".format(idx, len(frame)))
 
         send_frame(ser, frame, debug=debug)
-
+    
+    # Send signature
+    signature = firmware_verify[:SIGNATURE_SIZE] # Get the first 64 bytes after all the data has been sent
+    nonce = firmware_verify[-(NONCE_SIZE+AUTH_TAG_SIZE)][:NONCE_SIZE] # Get the next 16 for nonce
+    auth_tag = nonce = firmware_verify[-AUTH_TAG_SIZE:] # Get the last 16 bytes
+    
+    
+    
     print("Done writing firmware.")
 
     # Send a zero length payload to tell the bootlader to finish writing it's page.
