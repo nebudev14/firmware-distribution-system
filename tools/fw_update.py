@@ -107,7 +107,7 @@ def main(ser, infile, debug):
     nonce_and_auth = firmware_verify[SIGNATURE_SIZE:] # Get the last 32 for nonce + auth tag
     
     send_frame(ser, struct.pack("64s", signature), debug=debug)
-    send_frame(ser, struct.pack
+    send_frame(ser, struct.pack("64s", nonce_and_auth + bytes(32)), debug=debug)
     
     
     print("Done writing firmware.")
