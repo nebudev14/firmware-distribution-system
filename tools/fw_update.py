@@ -29,7 +29,7 @@ FRAME_SIZE = 16
 SIGNATURE_SIZE = 64
 NONCE_SIZE = 16
 AUTH_TAG_SIZE = 16
-VERIFY_SIZE = SIGNATURE_SIZE + NONCE_SIZE + AUTH_TAG_SIZE # Contains all the data we're using to ensure authenticity
+VERIFY_SIZE = SIGNATURE_SIZE + NONCE_SIZE + AUTH_TAG_SIZE # Size of data we're using to ensure authenticity
 
 
 def send_metadata(ser, metadata, debug=False):
@@ -81,10 +81,13 @@ def main(ser, infile, debug):
     firmware = firmware_blob[4:len(firmware_blob)-()] # Exclude ECC signature, nonce, and auth tag
     firmware_verify = firmware_blob[-VERIFY_SIZE:]
     
-    # Send version number/firmware size
+    # Send version number/firmware size. 
     send_metadata(ser, metadata, debug=debug)
+        
+    # Send the first 60 bytes of firmware to achieve frame size of 64 bytes
+    send_frame(ser, struct.pack("60s", firmware[:60]), debug=debug)
     
-    for idx, frame_start in enumerate(range(0, len(firmware), FRAME_SIZE)):
+    for idx, frame_start in enumerate(range(60, len(firmware), FRAME_SIZE)):
         data = firmware[frame_start: frame_start + FRAME_SIZE]
 
         # Get length of data.
@@ -101,7 +104,7 @@ def main(ser, infile, debug):
     
     # Send signature
     signature = firmware_verify[:SIGNATURE_SIZE] # Get the first 64 bytes after all the data has been sent
-    nonce = firmware_verify[-(NONCE_SIZE+AUTH_TAG_SIZE)][:NONCE_SIZE] # Get the next 16 for nonce
+    nonce = firmware_verify[-(NONCE_SIZE+AUTH_TAG_SIZE):][:NONCE_SIZE] # Get the next 16 for nonce
     auth_tag = nonce = firmware_verify[-AUTH_TAG_SIZE:] # Get the last 16 bytes
     
     
