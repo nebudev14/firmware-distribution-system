@@ -25,17 +25,12 @@ import time
 from serial import Serial
 
 RESP_OK = b'\x00'
-FRAME_SIZE = 16
-SIGNATURE_SIZE = 64
-NONCE_SIZE = 16
+FRAME_SIZE = 64
+NONCE_SIZE = 12
 AUTH_TAG_SIZE = 16
-VERIFY_SIZE = SIGNATURE_SIZE + NONCE_SIZE + AUTH_TAG_SIZE # Size of data we're using to ensure authenticity
 
 
-def send_metadata(ser, metadata, debug=False):
-    version, size = struct.unpack_from('<HH', metadata)
-    print(f'Version: {version}\nSize: {size} bytes\n')
-
+def do_handshake(ser):
     # Handshake for update
     ser.write(b'U')
     
@@ -43,19 +38,14 @@ def send_metadata(ser, metadata, debug=False):
     while ser.read(1).decode() != 'U':
         pass
 
-    # Send size and version to bootloader.
-    if debug:
-        print(metadata)
-
-    ser.write(metadata)
-
-    # Wait for an OK from the bootloader.
-    resp = ser.read()
-    if resp != RESP_OK:
-        raise RuntimeError("ERROR: Bootloader responded with {}".format(repr(resp)))
-
 
 def send_frame(ser, frame, debug=False):
+    # assert that frame <= 64 bytes
+    assert len(frame) <= 64
+    
+    # automatically pad frame to 64 bytes
+    frame = frame + bytes(64 - len(frame))
+
     ser.write(frame)  # Write the frame...
 
     if debug:
@@ -77,38 +67,27 @@ def main(ser, infile, debug):
     with open(infile, 'rb') as fp:
         firmware_blob = fp.read()
 
-    metadata = firmware_blob[:4]
-    firmware = firmware_blob[4:len(firmware_blob)-()] # Exclude ECC signature, nonce, and auth tag
-    firmware_verify = firmware_blob[-VERIFY_SIZE:]
+
+    # tag and nonce is first 16 + 12 bytes of firmware_blob
+    tag = firmware_blob[:16]
+    nonce = firmware_blob[16:28]
+    firmware = firmware_blob[28:]
     
-    # Send version number/firmware size. 
-    send_metadata(ser, metadata, debug=debug)
+    # Initiate update handshake with the server
+    do_handshake(ser, debug=debug)
+
+    # Send the frame 1
+    send_frame(ser, tag + nonce, debug=debug)
         
-    # Send the first 60 bytes of firmware to achieve frame size of 64 bytes
-    send_frame(ser, struct.pack("60s", firmware[:60]), debug=debug)
     
-    for idx, frame_start in enumerate(range(60, len(firmware), FRAME_SIZE)):
+    for idx, frame_start in enumerate(range(0, len(firmware), FRAME_SIZE)):
         data = firmware[frame_start: frame_start + FRAME_SIZE]
 
-        # Get length of data.
-        length = len(data)
-        frame_fmt = '>H{}s'.format(length)
-
-        # Construct frame.
-        frame = struct.pack(frame_fmt, length, data + bytes(64 - length)) # Add padding if necessary
-
         if debug:
-            print("Writing frame {} ({} bytes)...".format(idx, len(frame)))
+            print("Writing frame {} ({} bytes)...".format(idx, len(data)))
 
-        send_frame(ser, frame, debug=debug)
-    
-    # Send signature
-    signature = firmware_verify[:SIGNATURE_SIZE] # Get the first 64 bytes after all the data has been sent
-    nonce_and_auth = firmware_verify[SIGNATURE_SIZE:] # Get the last 32 for nonce + auth tag
-    
-    send_frame(ser, struct.pack("64s", signature), debug=debug)
-    send_frame(ser, struct.pack("64s", nonce_and_auth + bytes(32)), debug=debug)
-    
+        # Send the frame
+        send_frame(ser, data, debug=debug)
     
     print("Done writing firmware.")
 
