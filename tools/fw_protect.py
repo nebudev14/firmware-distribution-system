@@ -21,14 +21,14 @@ def protect_firmware(infile, outfile, version, message):
         vkey = secrets_file.read(64)
 
     # Append null-terminated message to end of firmware
-    # Current frame: x Firmware + x Message + 1 Null
+    # Current frame: x (x <= 30 kB) Firmware + x (x <= 1 kB) Message + 1 Null
     firmware_and_message = firmware + message.encode() + b'\00'
 
     # Pack version and size into two little-endian shorts
     metadata = struct.pack('<HH', version, len(firmware))
 
     # Append firmware and message to metadata
-    # Current frame: 2 Version + 2 Firmware Length + x Firmware + x Message + 1 Null
+    # Current frame: 2 Version + 2 Firmware Length + x (x <= 30 kB) Firmware + x (x <= 1 kB) Message + 1 Null
     firmware_blob = metadata + firmware_and_message
     
     # pad firmware data to 64 
@@ -47,8 +47,8 @@ def protect_firmware(infile, outfile, version, message):
     nonce = cipher.nonce
     encrypted_firmware_blob, tag = cipher.encrypt_and_digest(signed_firmware)
     
-    # Current frame: 2 Version + 2 Firmware Length + x Firmware + x Message + 1 Null + x Padding + 64 ECC key + 16 Tag + 16 Nonce
-    output = encrypted_firmware_blob + tag + nonce
+    # Current frame: 16 Tag + 12 Nonce + 2 Version + 2 Firmware Length + x (x <= 30 kB) Firmware + x (x <= 1 kB) Message + 1 Null + x Padding + 64 ECC key
+    output = tag + nonce + encrypted_firmware_blob
     
     # Pad the Vigenere Key to fit all of the data
     vkey *= len(output)//len(vkey)
