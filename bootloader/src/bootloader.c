@@ -20,6 +20,8 @@ void load_initial_firmware(void);
 void load_firmware(void);
 void boot_firmware(void);
 long program_flash(uint32_t, unsigned char *, unsigned int);
+void read_frame(uint8_t uart_num, uint8_t *data);
+void reject();
 
 // Firmware Constants
 #define METADATA_BASE 0xFC00 // base address of version and firmware size in Flash
@@ -35,6 +37,8 @@ long program_flash(uint32_t, unsigned char *, unsigned int);
 #define UPDATE ((unsigned char)'U')
 #define BOOT ((unsigned char)'B')
 
+// max firmware size of 32768 bytes
+#define MAX_FIRMWARE_SIZE 32768
 // Firmware v2 is embedded in bootloader
 // Read up on these symbols in the objcopy man page (if you want)!
 extern int _binary_firmware_bin_start;
@@ -156,9 +160,9 @@ void load_initial_firmware(void)
     // Program the final firmware and first part of the release message
     program_flash(FW_BASE + (i * FLASH_PAGESIZE), temp_buf, rem_fw_bytes + (msg_len - rem_msg_bytes));
 
-    // If there are more bytes, program them directly from the release message string
     if (rem_msg_bytes > 0)
     {
+      // If there are more bytes, program them directly from the release message string
       // Writing to a new page. Increment pointer
       i++;
       program_flash(FW_BASE + (i * FLASH_PAGESIZE), (uint8_t *)(initial_msg + (msg_len - rem_msg_bytes)), rem_msg_bytes);
@@ -166,6 +170,24 @@ void load_initial_firmware(void)
   }
 }
 
+// read a 64 byte frame of data from specified UART interface
+void read_frame(uint8_t uart_num, uint8_t *data)
+{
+  uint32_t instruction;
+  int resp;
+  uint8_t i;
+  for (i = 0; i < 64; i++)
+  {
+    instruction = uart_read(uart_num, BLOCKING, &resp);
+    data[i] = instruction;
+  }
+}
+
+void reject()
+{
+  uart_write(UART1, ERROR); // tell client there is error
+  SysCtlReset();            // Reset device
+}
 /*
  * Load the firmware into flash.
  */
@@ -178,7 +200,6 @@ void load_firmware(void)
   uint32_t data_index = 0;
   uint32_t page_addr = FW_BASE;
   uint32_t version = 0;
-  uint32_t size = 0;
 
   // 16 byte authentication tag
   uint8_t auth_tag[16];
@@ -192,35 +213,24 @@ void load_firmware(void)
   {
     nonce[i] = uart_read(UART1, BLOCKING, &read);
   }
-  uart_write_str(UART2, "Received nonce and tag.\n");
-
-  // Get version.
-  rcv = uart_read(UART1, BLOCKING, &read);
-  version = (uint32_t)rcv;
-  rcv = uart_read(UART1, BLOCKING, &read);
-  version |= (uint32_t)rcv << 8;
-
-  uart_write_str(UART2, "Received Firmware Version: ");
-  uart_write_hex(UART2, version);
-  nl(UART2);
-
-  // Get size.
-  rcv = uart_read(UART1, BLOCKING, &read);
-  size = (uint32_t)rcv;
-  rcv = uart_read(UART1, BLOCKING, &read);
-  size |= (uint32_t)rcv << 8;
-
-  uart_write_str(UART2, "Received Firmware Size: ");
-  uart_write_hex(UART2, size);
-  nl(UART2);
+  // empty read for the next 64 - (12 + 16) bytes of data
+  for (int i = 0; i < 64 - (12 + 16); i++)
+  {
+    uint8_t temp = uart_read(UART1, BLOCKING, &read);
+    // if temp is not null byte
+    if (temp != 0)
+    {
+      reject();
+      return;
+    }
+  }
 
   // Compare to old version and abort if older (note special case for version 0).
   uint16_t old_version = *fw_version_address;
 
   if (version != 0 && version < old_version)
   {
-    uart_write(UART1, ERROR); // Reject the metadata.
-    SysCtlReset();            // Reset device
+    reject();
     return;
   }
   else if (version == 0)
@@ -263,8 +273,7 @@ void load_firmware(void)
       // Try to write flash and check for error
       if (program_flash(page_addr, data, data_index))
       {
-        uart_write(UART1, ERROR); // Reject the firmware
-        SysCtlReset();            // Reset device
+        reject();
         return;
       }
 #if 1
