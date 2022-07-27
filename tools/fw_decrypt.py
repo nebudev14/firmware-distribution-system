@@ -1,7 +1,6 @@
 import argparse
 from multiprocessing.sharedctypes import Value
 import struct
-import sys
 from Crypto.Cipher import AES
 from Crypto.PublicKey import ECC
 from Crypto.Signature import eddsa
@@ -17,9 +16,6 @@ def decrypt_firmware(infile, outfile):
         priv_key = secrets_file.read(48) 
         pub_key = secrets_file.read(44)
         vkey = secrets_file.read(64)
-
-    # remove padding from enc_firmware(32 bytes)
-    enc_firmware = enc_firmware[:-32]
     
     # pad the vkey to fit all of the data
     vkey *= len(enc_firmware)//len(vkey)
@@ -27,12 +23,12 @@ def decrypt_firmware(infile, outfile):
 
     # setup bootleg vigenere decryption
     decrypted_vigenere_firmware = bytes(a ^ b for a, b in zip(enc_firmware, vkey))
-    # last 16 characters of enc_firmware are nonce
-    nonce = decrypted_vigenere_firmware[-16:]
-    # last 32 characters to 16th character are tag
-    tag = decrypted_vigenere_firmware[-32:-16]
-    # everything before tag is encrypted firmware
-    decrypted_vigenere_firmware = decrypted_vigenere_firmware[:-32]
+    # first 16 characters are the tag
+    tag = decrypted_vigenere_firmware[:16]
+    # next 12 characters are the nonce
+    nonce = decrypted_vigenere_firmware[16:28]
+    # everything after tag is encrypted firmware
+    decrypted_vigenere_firmware = decrypted_vigenere_firmware[28:]
 
     # Decrypt firmware using AES-GCM
     cipher = AES.new(aes_key, AES.MODE_GCM, nonce)
@@ -41,10 +37,10 @@ def decrypt_firmware(infile, outfile):
     except (ValueError, KeyError):
         print("Invalid decryption!")
         return
-    # get signature from deciphered firmware(last 64 bytes of deciphered firmware)
-    signature = deciphered_firmware[-64:]
+    # get signature from deciphered firmware(first 64 bytes of deciphered firmware)
+    signature = deciphered_firmware[:64]
     # deciphered firmware is equal to everything besides signature
-    deciphered_firmware = deciphered_firmware[:-64]
+    deciphered_firmware = deciphered_firmware[64:]
 
     ecc_key = ECC.import_key(pub_key)
     signer = eddsa.new(ecc_key, 'rfc8032')    
@@ -58,9 +54,9 @@ def decrypt_firmware(infile, outfile):
     length_of_firmware = struct.unpack('<H', deciphered_firmware[2:4])[0]
     # get firmware from deciphered firmware(everything besides version and length & firmware release message at the end)
     firmware = deciphered_firmware[4:4 + length_of_firmware]
-    # release message is everything past firmware
-    release_message = deciphered_firmware[4 + length_of_firmware:]
-
+    # release message is everything past firmware to first null byte
+    release_message = deciphered_firmware[4 + length_of_firmware:].split(b'\x00')[0]
+    print(f"Version: {version} \nLength: {length_of_firmware} bytes \nRelease message: {release_message}")
     # Write firmware blob to outfile
     with open(outfile, 'wb+') as outfile:
         outfile.write(firmware)
