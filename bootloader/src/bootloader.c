@@ -299,7 +299,8 @@ void load_firmware(void)
   }
 
   // Hash data
-  int hash_size = sha_hash(data_no_s)
+  char hashed_data[32];
+  sha_hash(data_no_signature, all_data_index-64, hashed_data);  
     
   // Verify ECC signature
   if(br_ecdsa_vrfy(BR_EC_curve2551, ) != 1) {
