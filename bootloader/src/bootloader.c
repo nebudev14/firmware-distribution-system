@@ -46,9 +46,9 @@ void reject();
 #define ECC_KEY_LENGTH 44
 
 // Keys
-char AES_KEY[AES_KEY_LENGTH] = AES_KEY;
-char V_KEY[V_KEY_LENGTH] = V_KEY;
-char ECC_KEY[ECC_KEY_LENGTH] = ECC_KEY;
+char AES_KEY[AES_KEY_LENGTH] = AES;
+char V_KEY[V_KEY_LENGTH] = V;
+char ECC_KEY[ECC_KEY_LENGTH] = ECC;
 
 // Firmware v2 is embedded in bootloader
 // Read up on these symbols in the objcopy man page (if you want)!
@@ -303,7 +303,7 @@ void load_firmware(void)
   sha_hash(data_no_signature, all_data_index-64, hashed_data);  
     
   // Verify ECC signature
-  if(br_ecdsa_vrfy(BR_EC_curve2551, hashed_data, 32, ECC_KEY, ecc_signature, 64) != 1) {
+  if(br_ecdsa_vrfy(BR_EC_curve25519, hashed_data, 32, ECC_KEY, ecc_signature, 64) != 1) {
       reject();
   }
   
