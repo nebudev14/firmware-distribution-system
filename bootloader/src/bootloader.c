@@ -284,6 +284,10 @@ void load_firmware(void)
     reject();
   }
     
+  // Grab ECC signature and verify
+  
+  
+    
   /* Loop here until you can get all your characters and stuff */
   while (1)
   {
