@@ -31,8 +31,6 @@ def copy_initial_firmware(binary_path):
     os.chdir(FILE_DIR)
     bootloader = FILE_DIR / '..' / 'bootloader'
     shutil.copy(binary_path, bootloader / 'src' / 'firmware.bin')
-
-
 def make_bootloader():
     """
     Build the bootloader from source.

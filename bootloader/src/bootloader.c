@@ -37,8 +37,16 @@ void reject();
 #define UPDATE ((unsigned char)'U')
 #define BOOT ((unsigned char)'B')
 
-// max firmware size of 32768 bytes
-#define MAX_FIRMWARE_SIZE 32768
+// Size constants
+#define MAX_FIRMWARE_SIZE 32768 // max firmware size of 32768 bytes
+#define AES_KEY_LENGTH 16
+#define V_KEY_LENGTH 64
+#define ECC_KEY_LENGTH 44
+
+// Keys
+char AES_KEY[AES_KEY_LENGTH] = AES_KEY;
+char V_KEY[V_KEY_LENGTH] = V_KEY
+
 // Firmware v2 is embedded in bootloader
 // Read up on these symbols in the objcopy man page (if you want)!
 extern int _binary_firmware_bin_start;
@@ -268,6 +276,12 @@ void load_firmware(void)
       all_data_index++;
     }
   }
+    
+  // Decrypt and verify
+  if(gcm_decrypt_and_verify() )
+  
+  
+    
   /* Loop here until you can get all your characters and stuff */
   while (1)
   {
