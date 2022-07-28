@@ -279,36 +279,38 @@ void load_firmware(void)
       all_data_index++;
     }
   }
-    
+
   // Decrypt and verify
   char aad[0]; // Empty char array bc we're not using AAD
-  if(gcm_decrypt_and_verify(AES_KEY, nonce, all_data, all_data_index, aad, 0, auth_tag) != 1) {
+  if (gcm_decrypt_and_verify(AES_KEY, nonce, all_data, all_data_index, aad, 0, auth_tag) != 1)
+  {
     reject();
   }
-    
+
   // Grab ECC signature
   char ecc_signature[64];
-  for(int i = 0; i < 64; i++) {
+  for (int i = 0; i < 64; i++)
+  {
     ecc_signature[i] = all_data[i];
   }
 
   // Grab all data excluding ECC signature
-  char data_no_signature[all_data_index-64];
-  for(int i = 64; i < all_data_index; i++) {
+  char data_no_signature[all_data_index - 64];
+  for (int i = 64; i < all_data_index; i++)
+  {
     data_no_signature[i] = all_data[i];
   }
 
   // Hash data
   char hashed_data[32];
-  sha_hash(data_no_signature, all_data_index-64, hashed_data);  
-    
+  sha_hash(data_no_signature, all_data_index - 64, hashed_data);
+
   // Verify ECC signature
-  if(br_ecdsa_vrfy(BR_EC_curve25519, hashed_data, 32, ECC_KEY, ecc_signature, 64) != 1) {
-      reject();
+  if (br_ecdsa_vrfy(BR_EC_curve25519, hashed_data, 32, ECC_KEY, ecc_signature, 64) != 1)
+  {
+    reject();
   }
-  
-  
-    
+
   /* Loop here until you can get all your characters and stuff */
   while (1)
   {
