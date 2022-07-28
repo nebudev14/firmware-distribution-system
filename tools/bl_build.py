@@ -19,7 +19,7 @@ FILE_DIR = pathlib.Path(__file__).parent.absolute()
 
 # converts binary string to c array so that we can take it in as input
 def arrayize(binary_string):
-    return '{' + ','.join(['0x' + x for x in binary_string.hex()]) + '}'
+    return '{' + ','.join([hex(char) for char in binary_string]) + '}'
 
 def copy_initial_firmware(binary_path):
     """
