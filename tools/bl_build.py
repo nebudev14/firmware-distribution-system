@@ -44,6 +44,7 @@ def make_bootloader():
 
     aes_key = get_random_bytes(16)
     vkey = get_random_bytes(64)
+    aad = get_random_bytes(16)
     
     
     ecc_key = ECC.generate(curve='ed25519')
@@ -57,6 +58,7 @@ def make_bootloader():
         f.write(private_key)
         f.write(public_key)
         f.write(vkey)
+        f.write(aad)
     subprocess.call('make clean', shell=True)
     status = subprocess.call(f'make AES_KEY={arrayize(aes_key)} ECC_KEY={arrayize(public_key)} V_KEY={arrayize(vkey)}', shell=True)
 

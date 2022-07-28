@@ -45,7 +45,8 @@ void reject();
 
 // Keys
 char AES_KEY[AES_KEY_LENGTH] = AES_KEY;
-char V_KEY[V_KEY_LENGTH] = V_KEY
+char V_KEY[V_KEY_LENGTH] = V_KEY;
+char ECC_KEY[ECC_KEY_LENGTH] = ECC_KEY;
 
 // Firmware v2 is embedded in bootloader
 // Read up on these symbols in the objcopy man page (if you want)!
@@ -278,9 +279,10 @@ void load_firmware(void)
   }
     
   // Decrypt and verify
-  if(gcm_decrypt_and_verify() )
-  
-  
+  char aad[0]; // Empty char array bc we're not using AAD
+  if(gcm_decrypt_and_verify(AES_KEY, nonce, all_data, all_data_index, aad, 0, auth_tag) != 1) {
+    reject();
+  }
     
   /* Loop here until you can get all your characters and stuff */
   while (1)
