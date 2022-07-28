@@ -8,6 +8,8 @@
 #include "driverlib/flash.h"     // FLASH API
 #include "driverlib/sysctl.h"    // System control API (clock/reset)
 #include "driverlib/interrupt.h" // Interrupt API
+#include "beaverssl.h"
+#include "bearssl.h"
 
 // Library Imports
 #include <string.h>
@@ -284,7 +286,25 @@ void load_firmware(void)
     reject();
   }
     
-  // Grab ECC signature and verify
+  // Grab ECC signature
+  char ecc_signature[64];
+  for(int i = 0; i < 64; i++) {
+    ecc_signature[i] = all_data[i];
+  }
+
+  // Grab all data excluding ECC signature
+  char data_no_signature[all_data_index-64];
+  for(int i = 64; i < all_data_index; i++) {
+    data_no_signature[i] = all_data[i];
+  }
+
+  // Hash data
+  int hash_size = sha_hash(data_no_s)
+    
+  // Verify ECC signature
+  if(br_ecdsa_vrfy(BR_EC_curve2551, ) != 1) {
+      reject();
+  }
   
   
     
