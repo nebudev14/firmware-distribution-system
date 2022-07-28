@@ -9,7 +9,7 @@ from Crypto.PublicKey import ECC
 from Crypto.Signature import DSS
 from Crypto.Random import get_random_bytes
 from Crypto.Util.Padding import pad
-from Crypto.Hash import SHA3_256
+from Crypto.Hash import SHA256
 
 def protect_firmware(infile, outfile, version, message):
     # Load firmware binary from infile
@@ -42,7 +42,7 @@ def protect_firmware(infile, outfile, version, message):
     signer = DSS.new(ecc_key, 'rfc8032')
     
     # Hash firmware blob
-    firmware_blob_hash = SHA3_256.new(firmware_blob)
+    firmware_blob_hash = SHA256.new(firmware_blob)
 
     # Current frame: 64 ECC signature + 2 Version + 2 Firmware Length + x Firmware + x Message + 1 Null + x Padding
     signed_firmware = signer.sign(firmware_blob_hash) + firmware_blob

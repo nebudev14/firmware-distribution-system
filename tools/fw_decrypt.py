@@ -4,7 +4,7 @@ import struct
 from Crypto.Cipher import AES
 from Crypto.PublicKey import ECC
 from Crypto.Signature import DSS
-from Crypto.Hash import SHA3_256
+from Crypto.Hash import SHA256
 
 def decrypt_firmware(infile, outfile):
     # Load firmware binary from infile
@@ -47,7 +47,7 @@ def decrypt_firmware(infile, outfile):
     verifier = DSS.new(ecc_key, 'rfc8032')
 
     # hash deciphered firmware
-    firmware_blob_hash = SHA3_256.new(deciphered_firmware)
+    firmware_blob_hash = SHA256.new(deciphered_firmware)
 
     # verify signature
     try:
