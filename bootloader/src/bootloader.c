@@ -246,8 +246,8 @@ void load_firmware(void)
 
   uart_write(UART1, OK); // Acknowledge the metadata.
 
-  // define 32768 long byte array
-  uint8_t all_data[MAX_FIRMWARE_SIZE];
+  // Point at encrypted firmware
+  uint8_t * all_data = (uint8_t *)(0x20008000)
   uint8_t data[64];
   int all_data_index = 0;
   // loops until data array becomes 64 null bytes
