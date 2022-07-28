@@ -13,6 +13,7 @@ import subprocess
 
 from Crypto.Random import get_random_bytes
 from Crypto.PublicKey import ECC
+from Crypto.Hash import SHA3_256
 
 FILE_DIR = pathlib.Path(__file__).parent.absolute()
 
@@ -43,9 +44,7 @@ def make_bootloader():
     os.chdir(bootloader)
 
     aes_key = get_random_bytes(16)
-    vkey = get_random_bytes(64)
-    aad = get_random_bytes(16)
-    
+    vkey = get_random_bytes(64)    
     
     ecc_key = ECC.generate(curve='ed25519')
 
@@ -58,7 +57,6 @@ def make_bootloader():
         f.write(private_key)
         f.write(public_key)
         f.write(vkey)
-        f.write(aad)
     subprocess.call('make clean', shell=True)
     status = subprocess.call(f'make AES_KEY={arrayize(aes_key)} ECC_KEY={arrayize(public_key)} V_KEY={arrayize(vkey)}', shell=True)
 
