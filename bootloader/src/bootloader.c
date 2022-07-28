@@ -277,17 +277,16 @@ void load_firmware(void)
       all_data_index++;
     }
   }
-    
+
   // Decrypt and verify
   char aad[0]; // Empty char array bc we're not using AAD
-  if(gcm_decrypt_and_verify(AES_KEY, nonce, all_data, all_data_index, aad, 0, auth_tag) != 1) {
+  if (gcm_decrypt_and_verify(AES_KEY, nonce, all_data, all_data_index, aad, 0, auth_tag) != 1)
+  {
     reject();
   }
-    
+
   // Grab ECC signature and verify
-  
-  
-    
+
   /* Loop here until you can get all your characters and stuff */
   while (1)
   {

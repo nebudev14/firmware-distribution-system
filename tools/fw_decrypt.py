@@ -3,7 +3,8 @@ from multiprocessing.sharedctypes import Value
 import struct
 from Crypto.Cipher import AES
 from Crypto.PublicKey import ECC
-from Crypto.Signature import eddsa
+from Crypto.Signature import DSS
+from Crypto.Hash import SHA3_256
 
 def decrypt_firmware(infile, outfile):
     # Load firmware binary from infile
@@ -43,9 +44,14 @@ def decrypt_firmware(infile, outfile):
     deciphered_firmware = deciphered_firmware[64:]
 
     ecc_key = ECC.import_key(pub_key)
-    signer = eddsa.new(ecc_key, 'rfc8032')    
+    verifier = DSS.new(ecc_key, 'rfc8032')
+
+    # hash deciphered firmware
+    firmware_blob_hash = SHA3_256.new(deciphered_firmware)
+
+    # verify signature
     try:
-        signer.verify(deciphered_firmware, signature)
+        verifier.verify(firmware_blob_hash, signature)
     except (ValueError, KeyError):
         print("Invalid signature!")
         return
