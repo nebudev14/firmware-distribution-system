@@ -28,7 +28,6 @@ void reject();
 // Firmware Constants
 #define METADATA_BASE 0xFC00 // base address of version and firmware size in Flash
 #define FW_BASE 0x10000      // base address of firmware in Flash
-#define FW_MEM_BASE 0x100000 // base address of firmware in RAM
 
 // FLASH Constants
 #define FLASH_PAGESIZE 1024
@@ -191,7 +190,7 @@ void read_frame(uint8_t uart_num, uint8_t *data)
   for (i = 0; i < 64; i++)
   {
     instruction = uart_read(uart_num, BLOCKING, &resp);
-    *(data + i) = instruction;
+    data[i] = instruction;
   }
 }
 
@@ -252,47 +251,40 @@ void load_firmware(void)
   }
 
   // Write new firmware size and version to Flash
-  // size (temp pls change)
-  uint16_t size = 69;
   // Create 32 bit word for flash programming, version is at lower address, size is at higher address
   uint32_t metadata = ((size & 0xFFFF) << 16) | (version & 0xFFFF);
   program_flash(METADATA_BASE, (uint8_t *)(&metadata), 4);
 
   uart_write(UART1, OK); // Acknowledge the metadata.
 
-  uint8_t * sp = FW_MEM_BASE;
+  // define 32768 long byte array
+  uint8_t all_data[MAX_FIRMWARE_SIZE];
+  uint8_t data[64];
   int all_data_index = 0;
-  uint8_t frame_counter = 0;
   // loops until data array becomes 64 null bytes
   while (all_data_index < MAX_FIRMWARE_SIZE)
   {
     // read 64 bytes of data from UART1
-    read_frame(UART1, sp+frame_counter*64);
-      
-    
+    read_frame(UART1, data);
     // if data is all null bytes, break loop
     // sorry
     if (data[0] == 0 && data[1] == 0 && data[2] == 0 && data[3] == 0 && data[4] == 0 && data[5] == 0 && data[6] == 0 && data[7] == 0 && data[8] == 0 && data[9] == 0 && data[10] == 0 && data[11] == 0 && data[12] == 0 && data[13] == 0 && data[14] == 0 && data[15] == 0 && data[16] == 0 && data[17] == 0 && data[18] == 0 && data[19] == 0 && data[20] == 0 && data[21] == 0 && data[22] == 0 && data[23] == 0 && data[24] == 0 && data[25] == 0 && data[26] == 0 && data[27] == 0 && data[28] == 0 && data[29] == 0 && data[30] == 0 && data[31] == 0 && data[32] == 0 && data[33] == 0 && data[34] == 0 && data[35] == 0 && data[36] == 0 && data[37] == 0 && data[38] == 0 && data[39] == 0 && data[40] == 0 && data[41] == 0 && data[42] == 0 && data[43] == 0 && data[44] == 0 && data[45] == 0 && data[46] == 0 && data[47] == 0 && data[48] == 0 && data[49] == 0 && data[50] == 0 && data[51] == 0 && data[52] == 0 && data[53] == 0 && data[54] == 0 && data[55] == 0 && data[56] == 0 && data[57] == 0 && data[58] == 0 && data[59] == 0 && data[60] == 0 && data[61] == 0 && data[62] == 0 && data[63] == 0)
     {
       break;
     }
-    frame_counter += 1; // this is put afterwards so last frame isn't counted as a data frame even though null frame is written
+    // otherwise copy data to all_data array
+    for (int i = 0; i < 64; i++)
+    {
+      all_data[all_data_index] = data[i];
+      all_data_index++;
+    }
   }
 
   // Decrypt and verify
-  
-  // Vignere decryption
-  for (int i=0; i<64*frame_counter; i++){
-    *(sp + i) = V_KEY[i%64] ^ *(sp + i);
-  }
-  //not a while loop for accidental nulls
-  
-  
   char aad[0]; // Empty char array bc we're not using AAD
   if (gcm_decrypt_and_verify(AES_KEY, nonce, all_data, all_data_index, aad, 0, auth_tag) != 1)
   {
     reject();
-    return;
   }
 
   // Grab ECC signature
@@ -310,14 +302,13 @@ void load_firmware(void)
   }
 
   // Hash data
-  unsigned char hashed_data[32];
+  char hashed_data[32];
   sha_hash(data_no_signature, all_data_index - 64, hashed_data);
 
   // Verify ECC signature
-  if (br_ecdsa_i31_vrfy_asn1(br_ec_get_default(), hashed_data, 32, ECC_KEY, ecc_signature, 64) != 1)
+  if (br_ecdsa_vrfy(br_ec_p256_m31, hashed_data, 32, ECC_KEY, ecc_signature, 64) != 1)
   {
     reject();
-    return;
   }
 
   /* Loop here until you can get all your characters and stuff */
