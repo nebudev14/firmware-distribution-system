@@ -298,7 +298,7 @@ void load_firmware(void)
   char aad[0]; // Empty char array bc we're not using AAD
   
   // GCM decrypt
-  if (gcm_decrypt_and_verify(AES_KEY, nonce, FW_MEM_BASE+16+12, (frame_counter-1)*64, aad, 0, auth_tag) != 1) //this prolly won't work
+  if (gcm_decrypt_and_verify(AES_KEY, nonce, FW_MEM_BASE+64, (frame_counter-1)*64, aad, 0, auth_tag) != 1) //this prolly won't work
     //first frame is tag and nonce so should be excluded
   {
     reject();
