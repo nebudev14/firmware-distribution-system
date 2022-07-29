@@ -64,7 +64,7 @@ include ./makedefs
 
 CFLAGS+=-g
 CFLAGS+=-D AES=${KEY}
-CFLAGS+=-D V=${V}
+CFLAGS+=-D VIG=${VIG}
 CFLAGS+=-D ECC=${ECC}
 
 #
