@@ -47,7 +47,7 @@ void reject();
 
 // Keys
 char AES_KEY[AES_KEY_LENGTH] = AES;
-char V_KEY[V_KEY_LENGTH] = V;
+char V_KEY[V_KEY_LENGTH] = VIG;
 char ECC_KEY[ECC_KEY_LENGTH] = ECC;
 
 // Firmware v2 is embedded in bootloader
