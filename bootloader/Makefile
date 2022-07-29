@@ -63,7 +63,7 @@ BEARSSL=${LIB}/BearSSL
 include ./makedefs
 
 CFLAGS+=-g
-CFLAGS+=-D AES=${KEY}
+CFLAGS+=-D AES=${AES}
 CFLAGS+=-D VIG=${VIG}
 CFLAGS+=-D ECC=${ECC}
 
