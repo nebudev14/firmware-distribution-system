@@ -15,7 +15,7 @@ def decrypt_firmware(infile, outfile):
     with open('secret_build_output.txt', 'rb') as secrets_file:
         aes_key = secrets_file.read(16)
         priv_key = secrets_file.read(48) 
-        pub_key = secrets_file.read(44)
+        pub_key = secrets_file.read(32)
         vkey = secrets_file.read(64)
     
     # pad the vkey to fit all of the data

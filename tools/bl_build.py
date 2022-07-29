@@ -50,8 +50,8 @@ def make_bootloader():
     ecc_key = ECC.generate(curve='ed25519')
 
     private_key = ecc_key.export_key(format='DER')
-    public_key = ecc_key.public_key().export_key(format='DER')
-
+    public_key = ecc_key.public_key().export_key(format='raw')
+    
     # write keys to file
     with open('secret_build_output.txt', 'wb+') as f:
         f.write(aes_key)
