@@ -251,6 +251,8 @@ void load_firmware(void)
   }
 
   // Write new firmware size and version to Flash
+  // size (temp pls change)
+  uint16_t size = 69;
   // Create 32 bit word for flash programming, version is at lower address, size is at higher address
   uint32_t metadata = ((size & 0xFFFF) << 16) | (version & 0xFFFF);
   program_flash(METADATA_BASE, (uint8_t *)(&metadata), 4);
@@ -285,6 +287,7 @@ void load_firmware(void)
   if (gcm_decrypt_and_verify(AES_KEY, nonce, all_data, all_data_index, aad, 0, auth_tag) != 1)
   {
     reject();
+    return;
   }
 
   // Grab ECC signature
@@ -306,9 +309,10 @@ void load_firmware(void)
   sha_hash(data_no_signature, all_data_index - 64, hashed_data);
 
   // Verify ECC signature
-  if (br_ecdsa_vrfy(BR_EC_curve25519, hashed_data, 32, ECC_KEY, ecc_signature, 64) != 1)
+  if (br_ecdsa_i31_vrfy_asn1(BR_EC_curve25519, hashed_data, 32, ECC_KEY, ecc_signature, 64) != 1)
   {
     reject();
+    return;
   }
 
   /* Loop here until you can get all your characters and stuff */
