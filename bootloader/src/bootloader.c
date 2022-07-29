@@ -314,7 +314,7 @@ void load_firmware(void)
   sha_hash(data_no_signature, all_data_index - 64, hashed_data);
 
   // Verify ECC signature
-  if (br_ecdsa_i31_vrfy_asn1(br_ec_get_default(), hashed_data, 32, ECC_KEY, ecc_signature, 64) != 1)
+  if (br_ecdsa_i31_vrfy_asn1(br_ec_p256_m31, hashed_data, 32, ECC_KEY, ecc_signature, 64) != 1)
   {
     reject();
     return;
