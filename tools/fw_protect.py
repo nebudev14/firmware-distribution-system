@@ -39,13 +39,16 @@ def protect_firmware(infile, outfile, version, message):
 
     # Sign using ECC rfc8032
     ecc_key = ECC.import_key(priv_key)
-    signer = DSS.new(ecc_key, 'rfc8032')
+    signer = DSS.new(ecc_key, 'fips-186-3')
     
     # Hash firmware blob
     firmware_blob_hash = SHA256.new(firmware_blob)
 
+
+    signature = signer.sign(firmware_blob_hash)
+
     # Current frame: 64 ECC signature + 2 Version + 2 Firmware Length + x Firmware + x Message + 1 Null + x Padding
-    signed_firmware = signer.sign(firmware_blob_hash) + firmware_blob
+    signed_firmware = signature + firmware_blob
     
     
     # Create cipher object
