@@ -287,31 +287,31 @@ void load_firmware(void)
   }
   //not a while loop for accidental nulls
   
+  char auth_tag[16];
+  char nonce[12];
+  char ecc_sign[64];
+  
+  &auth_tag[0] = FW_MEM_BASE;
+  &nonce[0] = FW_MEM_BASE+16;
+  &ecc_char[0] = FW_MEM_BASE+64; //remember the padding
   
   char aad[0]; // Empty char array bc we're not using AAD
-  if (gcm_decrypt_and_verify(AES_KEY, nonce, all_data, all_data_index, aad, 0, auth_tag) != 1)
+  
+  // GCM decrypt
+  if (gcm_decrypt_and_verify(AES_KEY, nonce, FW_MEM_BASE+16+12, (frame_counter-1)*64, aad, 0, auth_tag) != 1) //this prolly won't work
+    //first frame is tag and nonce so should be excluded
   {
     reject();
     return;
   }
 
-  // Grab ECC signature
-  char ecc_signature[64];
-  for (int i = 0; i < 64; i++)
-  {
-    ecc_signature[i] = all_data[i];
-  }
-
   // Grab all data excluding ECC signature
-  char data_no_signature[all_data_index - 64];
-  for (int i = 64; i < all_data_index; i++)
-  {
-    data_no_signature[i] = all_data[i];
-  }
+  char data_no_signature[(frame_counter-2)*64];
+  &data_no_signature = FW_MEM_BASE+64*2
 
   // Hash data
   unsigned char hashed_data[32];
-  sha_hash(data_no_signature, all_data_index - 64, hashed_data);
+  sha_hash(data_no_signature, all_data_index - 64, hashed_data); //not sure which part is actually hashed
 
   // Verify ECC signature
   if (br_ecdsa_i31_vrfy_asn1(br_ec_p256_m31, hashed_data, 32, ECC_KEY, ecc_signature, 64) != 1)
