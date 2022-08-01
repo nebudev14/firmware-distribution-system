@@ -46,6 +46,9 @@ void reject();
 #define V_KEY_LENGTH 64
 #define ECC_KEY_LENGTH 65
 
+#define FRAME_LENGTH 64
+#define TAG_PLUS_NONCE 28
+
 // Keys
 char AES_KEY[AES_KEY_LENGTH] = AES;
 char V_KEY[V_KEY_LENGTH] = VIG;
@@ -191,7 +194,7 @@ void read_frame(uint8_t uart_num, uint8_t *data)
   uint32_t instruction;
   int resp;
   uint8_t i;
-  for (i = 0; i < 64; i++)
+  for (i = 0; i < FRAME_LENGTH; i++)
   {
     instruction = uart_read(uart_num, BLOCKING, &resp);
     *(data + i) = instruction;
@@ -224,18 +227,18 @@ void load_firmware(void)
   uint8_t *ecc_signature; // 28
   auth_tag = 0x100000;
   nonce = 0x100000 + 16;
-  ecc_signature = 0x100000 + 28;
+  ecc_signature = 0x100000 + TAG_PLUS_NONCE;
 
   uint8_t frame_counter = 0;
   // loops until data array becomes 64 null bytes
-  while (frame_counter * 64 < MAX_FIRMWARE_SIZE)
+  while (frame_counter * FRAME_LENGTH < MAX_FIRMWARE_SIZE)
   {
     // read 64 bytes of data from UART1
-    read_frame(UART1, sp + frame_counter * 64);
+    read_frame(UART1, sp + frame_counter * FRAME_LENGTH);
 
     // if data is all null bytes, break loop
     // sorry
-    if (*(sp + frame_counter * 64 + 0) == 0 && *(sp + frame_counter * 64 + 1) == 0 && *(sp + frame_counter * 64 + 2) == 0 && *(sp + frame_counter * 64 + 3) == 0 && *(sp + frame_counter * 64 + 4) == 0 && *(sp + frame_counter * 64 + 5) == 0 && *(sp + frame_counter * 64 + 6) == 0 && *(sp + frame_counter * 64 + 7) == 0 && *(sp + frame_counter * 64 + 8) == 0 && *(sp + frame_counter * 64 + 9) == 0 && *(sp + frame_counter * 64 + 10) == 0 && *(sp + frame_counter * 64 + 11) == 0 && *(sp + frame_counter * 64 + 12) == 0 && *(sp + frame_counter * 64 + 13) == 0 && *(sp + frame_counter * 64 + 14) == 0 && *(sp + frame_counter * 64 + 15) == 0 && *(sp + frame_counter * 64 + 16) == 0 && *(sp + frame_counter * 64 + 17) == 0 && *(sp + frame_counter * 64 + 18) == 0 && *(sp + frame_counter * 64 + 19) == 0 && *(sp + frame_counter * 64 + 20) == 0 && *(sp + frame_counter * 64 + 21) == 0 && *(sp + frame_counter * 64 + 22) == 0 && *(sp + frame_counter * 64 + 23) == 0 && *(sp + frame_counter * 64 + 24) == 0 && *(sp + frame_counter * 64 + 25) == 0 && *(sp + frame_counter * 64 + 26) == 0 && *(sp + frame_counter * 64 + 27) == 0 && *(sp + frame_counter * 64 + 28) == 0 && *(sp + frame_counter * 64 + 29) == 0 && *(sp + frame_counter * 64 + 30) == 0 && *(sp + frame_counter * 64 + 31) == 0 && *(sp + frame_counter * 64 + 32) == 0 && *(sp + frame_counter * 64 + 33) == 0 && *(sp + frame_counter * 64 + 34) == 0 && *(sp + frame_counter * 64 + 35) == 0 && *(sp + frame_counter * 64 + 36) == 0 && *(sp + frame_counter * 64 + 37) == 0 && *(sp + frame_counter * 64 + 38) == 0 && *(sp + frame_counter * 64 + 39) == 0 && *(sp + frame_counter * 64 + 40) == 0 && *(sp + frame_counter * 64 + 41) == 0 && *(sp + frame_counter * 64 + 42) == 0 && *(sp + frame_counter * 64 + 43) == 0 && *(sp + frame_counter * 64 + 44) == 0 && *(sp + frame_counter * 64 + 45) == 0 && *(sp + frame_counter * 64 + 46) == 0 && *(sp + frame_counter * 64 + 47) == 0 && *(sp + frame_counter * 64 + 48) == 0 && *(sp + frame_counter * 64 + 49) == 0 && *(sp + frame_counter * 64 + 50) == 0 && *(sp + frame_counter * 64 + 51) == 0 && *(sp + frame_counter * 64 + 52) == 0 && *(sp + frame_counter * 64 + 53) == 0 && *(sp + frame_counter * 64 + 54) == 0 && *(sp + frame_counter * 64 + 55) == 0 && *(sp + frame_counter * 64 + 56) == 0 && *(sp + frame_counter * 64 + 57) == 0 && *(sp + frame_counter * 64 + 58) == 0 && *(sp + frame_counter * 64 + 59) == 0 && *(sp + frame_counter * 64 + 60) == 0 && *(sp + frame_counter * 64 + 61) == 0 && *(sp + frame_counter * 64 + 62) == 0 && *(sp + frame_counter * 64 + 63) == 0)
+    if (*(sp + frame_counter * FRAME_LENGTH + 0) == 0 && *(sp + frame_counter * FRAME_LENGTH + 1) == 0 && *(sp + frame_counter * FRAME_LENGTH + 2) == 0 && *(sp + frame_counter * FRAME_LENGTH + 3) == 0 && *(sp + frame_counter * FRAME_LENGTH + 4) == 0 && *(sp + frame_counter * FRAME_LENGTH + 5) == 0 && *(sp + frame_counter * FRAME_LENGTH + 6) == 0 && *(sp + frame_counter * FRAME_LENGTH + 7) == 0 && *(sp + frame_counter * FRAME_LENGTH + 8) == 0 && *(sp + frame_counter * FRAME_LENGTH + 9) == 0 && *(sp + frame_counter * FRAME_LENGTH + 10) == 0 && *(sp + frame_counter * FRAME_LENGTH + 11) == 0 && *(sp + frame_counter * FRAME_LENGTH + 12) == 0 && *(sp + frame_counter * FRAME_LENGTH + 13) == 0 && *(sp + frame_counter * FRAME_LENGTH + 14) == 0 && *(sp + frame_counter * FRAME_LENGTH + 15) == 0 && *(sp + frame_counter * FRAME_LENGTH + 16) == 0 && *(sp + frame_counter * FRAME_LENGTH + 17) == 0 && *(sp + frame_counter * FRAME_LENGTH + 18) == 0 && *(sp + frame_counter * FRAME_LENGTH + 19) == 0 && *(sp + frame_counter * FRAME_LENGTH + 20) == 0 && *(sp + frame_counter * FRAME_LENGTH + 21) == 0 && *(sp + frame_counter * FRAME_LENGTH + 22) == 0 && *(sp + frame_counter * FRAME_LENGTH + 23) == 0 && *(sp + frame_counter * FRAME_LENGTH + 24) == 0 && *(sp + frame_counter * FRAME_LENGTH + 25) == 0 && *(sp + frame_counter * FRAME_LENGTH + 26) == 0 && *(sp + frame_counter * FRAME_LENGTH + 27) == 0 && *(sp + frame_counter * FRAME_LENGTH + 28) == 0 && *(sp + frame_counter * FRAME_LENGTH + 29) == 0 && *(sp + frame_counter * FRAME_LENGTH + 30) == 0 && *(sp + frame_counter * FRAME_LENGTH + 31) == 0 && *(sp + frame_counter * FRAME_LENGTH + 32) == 0 && *(sp + frame_counter * FRAME_LENGTH + 33) == 0 && *(sp + frame_counter * FRAME_LENGTH + 34) == 0 && *(sp + frame_counter * FRAME_LENGTH + 35) == 0 && *(sp + frame_counter * FRAME_LENGTH + 36) == 0 && *(sp + frame_counter * FRAME_LENGTH + 37) == 0 && *(sp + frame_counter * FRAME_LENGTH + 38) == 0 && *(sp + frame_counter * FRAME_LENGTH + 39) == 0 && *(sp + frame_counter * FRAME_LENGTH + 40) == 0 && *(sp + frame_counter * FRAME_LENGTH + 41) == 0 && *(sp + frame_counter * FRAME_LENGTH + 42) == 0 && *(sp + frame_counter * FRAME_LENGTH + 43) == 0 && *(sp + frame_counter * FRAME_LENGTH + 44) == 0 && *(sp + frame_counter * FRAME_LENGTH + 45) == 0 && *(sp + frame_counter * FRAME_LENGTH + 46) == 0 && *(sp + frame_counter * FRAME_LENGTH + 47) == 0 && *(sp + frame_counter * FRAME_LENGTH + 48) == 0 && *(sp + frame_counter * FRAME_LENGTH + 49) == 0 && *(sp + frame_counter * FRAME_LENGTH + 50) == 0 && *(sp + frame_counter * FRAME_LENGTH + 51) == 0 && *(sp + frame_counter * FRAME_LENGTH + 52) == 0 && *(sp + frame_counter * FRAME_LENGTH + 53) == 0 && *(sp + frame_counter * FRAME_LENGTH + 54) == 0 && *(sp + frame_counter * FRAME_LENGTH + 55) == 0 && *(sp + frame_counter * FRAME_LENGTH + 56) == 0 && *(sp + frame_counter * FRAME_LENGTH + 57) == 0 && *(sp + frame_counter * FRAME_LENGTH + 58) == 0 && *(sp + frame_counter * FRAME_LENGTH + 59) == 0 && *(sp + frame_counter * FRAME_LENGTH + 60) == 0 && *(sp + frame_counter * FRAME_LENGTH + 61) == 0 && *(sp + frame_counter * FRAME_LENGTH + 62) == 0 && *(sp + frame_counter * FRAME_LENGTH + 63) == 0)
     {
       break;
     }
@@ -249,17 +252,17 @@ void load_firmware(void)
   // Decrypt and verify
 
   // Vignere decryption
-  for (int i = 0; i < 64 * frame_counter; i++)
+  for (int i = 0; i < FRAME_LENGTH * frame_counter; i++)
   {
-    *(sp + i) = V_KEY[i % 64] ^ *(sp + i);
+    *(sp + i) = V_KEY[i % FRAME_LENGTH] ^ *(sp + i);
   }
   // not a while loop for accidental nulls
 
   char aad[0]; // Empty char array bc we're not using AAD
 
   // GCM decrypt
-  if (gcm_decrypt_and_verify(AES_KEY, *nonce, ecc_signature, (frame_counter - 1) * 64 - 28, aad, 0, *auth_tag) != 1) // this prolly won't work
-                                                                                                                     // first frame is tag and nonce so should be excluded
+  if (gcm_decrypt_and_verify(AES_KEY, *nonce, ecc_signature, (frame_counter - 1) * FRAME_LENGTH - TAG_PLUS_NONCE, aad, 0, *auth_tag) != 1) // this prolly won't work
+                                                                                                                                           // first frame is tag and nonce so should be excluded
   {
     reject();
     return;
@@ -271,7 +274,7 @@ void load_firmware(void)
 
   // Hash data
   unsigned char hashed_data[32];
-  sha_hash(*data_no_signature, frame_counter * 64 - 28 - 64, hashed_data);
+  sha_hash(*data_no_signature, frame_counter * FRAME_LENGTH - TAG_PLUS_NONCE - FRAME_LENGTH, hashed_data);
 
   // Verify ECC signature
   if (br_ecdsa_i31_vrfy_asn1(&br_ec_p256_m31, hashed_data, 32, &ECC_PUB_KEY, ecc_signature, 64) != 1)
@@ -280,7 +283,7 @@ void load_firmware(void)
     return;
   }
 
-  version = *(sp + 28 + 64) | *(sp + 28 + 64 + 1) << 8;
+  version = *(sp + TAG_PLUS_NONCE + 64) | *(sp + TAG_PLUS_NONCE + 64 + 1) << 8;
   if (version != 0 && version < old_version)
   {
     reject();
@@ -293,7 +296,7 @@ void load_firmware(void)
   }
 
   // Write new firmware size and version to Flash
-  uint16_t fw_size = *(sp + 28 + 64 + 2) | *(sp + 28 + 64 + 3) << 8;
+  uint16_t fw_size = *(sp + TAG_PLUS_NONCE + 64 + 2) | *(sp + TAG_PLUS_NONCE + 64 + 3) << 8;
   // Create 32 bit word for flash programming, version is at lower address, size is at higher address
   program_flash(METADATA_BASE, (uint8_t *)version, 2);
   program_flash(METADATA_BASE, (uint8_t *)fw_size, 2);
@@ -302,11 +305,11 @@ void load_firmware(void)
   int i = 0;
   for (; i < fw_size; i++)
   {
-    program_flash(FW_BASE, (uint8_t *)sp + 28 + 64 + 4 + i, 1);
+    program_flash(FW_BASE, (uint8_t *)sp + TAG_PLUS_NONCE + FRAME_LENGTH + 4 + i, 1);
   }
   // Write debugging messages to UART2.
   uart_write_str(UART2, "Firmware successfully programmed\nAddress: ");
-  uart_write_hex(UART2, sp + 28 + 64 + 4 + i);
+  uart_write_hex(UART2, sp + TAG_PLUS_NONCE + FRAME_LENGTH + 4 + i);
   uart_write_str(UART2, "\nBytes: ");
   uart_write_hex(UART2, i);
   nl(UART2);
