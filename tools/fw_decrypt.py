@@ -12,7 +12,7 @@ def decrypt_firmware(infile, outfile):
         enc_firmware = fp.read()
         
     # load secret keys from file
-    with open('secret_build_output.txt', 'rb') as secrets_file:
+    with open('../bootloader/secret_build_output.txt', 'rb') as secrets_file:
         aes_key = secrets_file.read(16)
         priv_key = secrets_file.read(138) 
         pub_key = secrets_file.read(65)
