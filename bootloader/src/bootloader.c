@@ -47,7 +47,6 @@ void reject();
 #define ECC_KEY_LENGTH 65
 
 #define FRAME_LENGTH 64
-#define TAG_PLUS_NONCE 28
 
 // Keys
 char AES_KEY[AES_KEY_LENGTH] = AES;
@@ -221,13 +220,22 @@ void load_firmware(void)
   uint32_t version = 0;
   uint16_t old_version = *fw_version_address;
 
+  // define the storage pointer for the frame data
   uint8_t *sp = 0x100000;
-  uint8_t *auth_tag;      // 16
-  uint8_t *nonce;         // 12
-  uint8_t *ecc_signature; // 28
-  auth_tag = 0x100000;
-  nonce = 0x100000 + 16;
-  ecc_signature = 0x100000 + TAG_PLUS_NONCE;
+  uint8_t *ecc_signature;
+  ecc_signature = 0x100000;
+
+  // Read the first packet of data(16 bytes of auth tag, 12 bytes of nonce)
+  uint8_t auth_tag[16];
+  uint8_t nonce[12];
+  for (int i = 0; i < 16; i++)
+  {
+    auth_tag[i] = uart_read(UART1, BLOCKING, &read);
+  }
+  for (int i = 0; i < 12; i++)
+  {
+    nonce[i] = uart_read(UART1, BLOCKING, &read);
+  }
 
   uint8_t frame_counter = 0;
   // loops until data array becomes 64 null bytes
@@ -261,8 +269,8 @@ void load_firmware(void)
   char aad[0]; // Empty char array bc we're not using AAD
 
   // GCM decrypt
-  if (gcm_decrypt_and_verify(AES_KEY, *nonce, ecc_signature, (frame_counter - 1) * FRAME_LENGTH - TAG_PLUS_NONCE, aad, 0, *auth_tag) != 1) // this prolly won't work
-                                                                                                                                           // first frame is tag and nonce so should be excluded
+  if (gcm_decrypt_and_verify(AES_KEY, *nonce, ecc_signature, (frame_counter - 1) * FRAME_LENGTH, aad, 0, *auth_tag) != 1) // this prolly won't work
+                                                                                                                          // first frame is tag and nonce so should be excluded
   {
     reject();
     return;
@@ -274,7 +282,7 @@ void load_firmware(void)
 
   // Hash data
   unsigned char hashed_data[32];
-  sha_hash(*data_no_signature, frame_counter * FRAME_LENGTH - TAG_PLUS_NONCE - FRAME_LENGTH, hashed_data);
+  sha_hash(*data_no_signature, frame_counter * FRAME_LENGTH - FRAME_LENGTH, hashed_data);
 
   // Verify ECC signature
   if (br_ecdsa_i31_vrfy_asn1(&br_ec_p256_m31, hashed_data, 32, &ECC_PUB_KEY, ecc_signature, 64) != 1)
@@ -283,7 +291,7 @@ void load_firmware(void)
     return;
   }
 
-  version = *(sp + TAG_PLUS_NONCE + 64) | *(sp + TAG_PLUS_NONCE + 64 + 1) << 8;
+  version = *(sp + 64) | *(sp + 64 + 1) << 8;
   if (version != 0 && version < old_version)
   {
     reject();
@@ -296,7 +304,7 @@ void load_firmware(void)
   }
 
   // Write new firmware size and version to Flash
-  uint16_t fw_size = *(sp + TAG_PLUS_NONCE + 64 + 2) | *(sp + TAG_PLUS_NONCE + 64 + 3) << 8;
+  uint16_t fw_size = *(sp + 64 + 2) | *(sp + 64 + 3) << 8;
   // Create 32 bit word for flash programming, version is at lower address, size is at higher address
   program_flash(METADATA_BASE, (uint8_t *)version, 2);
   program_flash(METADATA_BASE, (uint8_t *)fw_size, 2);
@@ -305,11 +313,11 @@ void load_firmware(void)
   int i = 0;
   for (; i < fw_size; i++)
   {
-    program_flash(FW_BASE, (uint8_t *)sp + TAG_PLUS_NONCE + FRAME_LENGTH + 4 + i, 1);
+    program_flash(FW_BASE, (uint8_t *)sp + FRAME_LENGTH + 4 + i, 1);
   }
   // Write debugging messages to UART2.
   uart_write_str(UART2, "Firmware successfully programmed\nAddress: ");
-  uart_write_hex(UART2, sp + TAG_PLUS_NONCE + FRAME_LENGTH + 4 + i);
+  uart_write_hex(UART2, sp + FRAME_LENGTH + 4 + i);
   uart_write_str(UART2, "\nBytes: ");
   uart_write_hex(UART2, i);
   nl(UART2);
