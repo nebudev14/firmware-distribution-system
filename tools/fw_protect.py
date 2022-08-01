@@ -56,7 +56,7 @@ def protect_firmware(infile, outfile, version, message):
     nonce = cipher.nonce
     encrypted_firmware_blob, tag = cipher.encrypt_and_digest(signed_firmware)
     
-    # Current frame: 16 tag + 12 nonce + 64 ECC signature + 2 Version + 2 Firmware Length + x (x <= 30 kB) Firmware + x (x <= 1 kB) Message + 1 Null + x Padding
+    # Current frame: 16 tag + 16 nonce + 64 ECC signature + 2 Version + 2 Firmware Length + x (x <= 30 kB) Firmware + x (x <= 1 kB) Message + 1 Null + x Padding
     output = encrypted_firmware_blob
     
     # Pad the Vigenere Key to fit all of the data

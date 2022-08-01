@@ -197,7 +197,9 @@ void read_frame(uint8_t uart_num, uint8_t *data)
   {
     instruction = uart_read(uart_num, BLOCKING, &resp);
     *(data + i) = instruction;
+    uart_write(UART2, instruction);
   }
+  nl(UART2, &resp);
   uart_write(UART1, OK);
 }
 
@@ -225,14 +227,14 @@ void load_firmware(void)
   uint8_t *ecc_signature;
   ecc_signature = 0x100000;
 
-  // Read the first packet of data(16 bytes of auth tag, 12 bytes of nonce)
+  // Read the first packet of data(16 bytes of auth tag, 16 bytes of nonce)
   uint8_t auth_tag[16];
-  uint8_t nonce[12];
+  uint8_t nonce[16];
   for (int i = 0; i < 16; i++)
   {
     auth_tag[i] = uart_read(UART1, BLOCKING, &read);
   }
-  for (int i = 0; i < 12; i++)
+  for (int i = 0; i < 16; i++)
   {
     nonce[i] = uart_read(UART1, BLOCKING, &read);
   }

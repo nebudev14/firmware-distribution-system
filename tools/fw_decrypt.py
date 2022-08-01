@@ -27,9 +27,9 @@ def decrypt_firmware(infile, outfile):
     # first 16 characters are the tag
     tag = decrypted_vigenere_firmware[:16]
     # next 12 characters are the nonce
-    nonce = decrypted_vigenere_firmware[16:28]
+    nonce = decrypted_vigenere_firmware[16:32]
     # everything after tag is encrypted firmware
-    decrypted_vigenere_firmware = decrypted_vigenere_firmware[28:]
+    decrypted_vigenere_firmware = decrypted_vigenere_firmware[32:]
 
     # Decrypt firmware using AES-GCM
     cipher = AES.new(aes_key, AES.MODE_GCM, nonce)

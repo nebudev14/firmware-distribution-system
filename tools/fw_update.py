@@ -71,10 +71,10 @@ def main(ser, infile, debug):
         firmware_blob = fp.read()
 
 
-    # tag and nonce is first 16 + 12 bytes of firmware_blob
+    # tag and nonce is first 16 + 16 bytes of firmware_blob
     tag = firmware_blob[:16]
-    nonce = firmware_blob[16:28]
-    firmware = firmware_blob[28:]
+    nonce = firmware_blob[16:32]
+    firmware = firmware_blob[32:]
     
     # Initiate update handshake with the server
     do_handshake(ser, tag, nonce, debug=debug)
