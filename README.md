@@ -30,11 +30,11 @@ x represents some number of padding depends on the how large the encoding of fir
 
 > This was the process of encrypting our firmware to maintain the triad of cybersecurity CIA: Confidentiality, Integrity, and Authorization.
 
-![fw1](fwprotect.png)
+![fw1](fwprotect.PNG)
 
 > This was the overview of how we wanted to decrypt and flash a new firmware into memory.
 
-![fw2](fwprotect2.png)
+![fw2](fwprotect2.PNG)
 
 Security process:
 
