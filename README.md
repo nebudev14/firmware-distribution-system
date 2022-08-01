@@ -79,10 +79,12 @@ ECC_Signature = AES_Decrypted_Data[:64]
 Encrypted_Firmware_Blob = AES_Decrypted_Data[64:]
 #Extract ECC data
 
-Unencrypted_Firmware_Blob = ECC_Verify_And_Decrypt(ECC_Signature,Encrypted_Firmware_Blob)
+Unencrypted_Firmware_Blob = ECC_Verify_And_Decrypt(ECC_Signat
+#Verify our ECC signature
 
 Version = Unencrypted_Firmware_Blob[:2]
 Firmware_Size = Unencrypted_Firmware_Blob[2:4]
 Firmware = Unencrypted_Firmware_Blob[4:Firmware_Size+4]
 Message = Unencrypted_Firmware_Blob[Firmware_Size+4:]
+#Unpack the entire Firmware blob
 ```
