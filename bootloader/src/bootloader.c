@@ -300,61 +300,21 @@ void load_firmware(void)
   // Write new firmware size and version to Flash
   uint16_t fw_size = *(sp+28+64+2) | *(sp+28+64+3) << 8;
   // Create 32 bit word for flash programming, version is at lower address, size is at higher address
-  program_flash(METADATA_BASE, (uint8_t *)(&metadata), 4);
-  /* Loop here until you can get all your characters and stuff */
-  while (1)
-  {
+  program_flash(METADATA_BASE, (uint8_t *)version, 2);
+  program_flash(METADATA_BASE, (uint8_t *)fw_size, 2);
 
-    // Get two bytes for the length.
-    rcv = uart_read(UART1, BLOCKING, &read);
-    frame_length = (int)rcv << 8;
-  uint16_t  = *(sp+28+64) | *(sp+28+64+1) << 8;
-    rcv = uart_read(UART1, BLOCKING, &read);C
-    frame_length += (int)rcv;
 
-    // Write length debug message
-    uart_write_hex(UART2, frame_length);
-    nl(UART2);
 
-    // Get the number of bytes specified
-    for (int i = 0; i < frame_length; ++i)
-    {
-      data[data_index] = uart_read(UART1, BLOCKING, &read);
-      data_index += 1;
-    } // for
-
-    // If we filed our page buffer, program it
-    if (data_index == FLASH_PAGESIZE || frame_length == 0)
-    {
-      // Try to write flash and check for error
-      if (program_flash(page_addr, data, data_index))
-      {
-        reject();
-        return;
-      }
-#if 1
-      // Write debugging messages to UART2.
-      uart_write_str(UART2, "Page successfully programmed\nAddress: ");
-      uart_write_hex(UART2, page_addr);
-      uart_write_str(UART2, "\nBytes: ");
-      uart_write_hex(UART2, data_index);
-      nl(UART2);
-#endif
-
-      // Update to next page
-      page_addr += FLASH_PAGESIZE;
-      data_index = 0;
-
-      // If at end of firmware, go to main
-      if (frame_length == 0)
-      {
-        uart_write(UART1, OK);
-        break;
-      }
-    } // if
-
-    uart_write(UART1, OK); // Acknowledge the frame.
-  }                        // while(1)
+  // Flash everything in memory
+  for (int i=0; i<fw_size; i++){
+    program_flash(FW_BASE,(uint8_t *)sp+28+64+4+i, 1);
+  }
+  // Write debugging messages to UART2.
+  uart_write_str(UART2, "Firmware successfully programmed\nAddress: ");
+  uart_write_hex(UART2, sp+28+64+4+i);
+  uart_write_str(UART2, "\nBytes: ");
+  uart_write_hex(UART2, i);
+  nl(UART2);
 }
 
 /*
