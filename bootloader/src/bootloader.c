@@ -193,6 +193,7 @@ void read_frame(uint8_t uart_num, uint8_t *data)
     instruction = uart_read(uart_num, BLOCKING, &resp);
     *(data + i) = instruction;
   }
+  uart_write(UART2,OK);
 }
 
 void reject()
@@ -212,34 +213,93 @@ void load_firmware(void)
   uint32_t data_index = 0;
   uint32_t page_addr = FW_BASE;
   uint32_t version = 0;
-
-  // 16 byte authentication tag
-  uint8_t auth_tag[16];
-  for (int i = 0; i < 16; i++)
-  {
-    auth_tag[i] = uart_read(UART1, BLOCKING, &read);
-  }
-  // 12 byte nonce
-  uint8_t nonce[12];
-  for (int i = 0; i < 12; i++)
-  {
-    nonce[i] = uart_read(UART1, BLOCKING, &read);
-  }
-  // empty read for the next 64 - (12 + 16) bytes of data
-  for (int i = 0; i < 64 - (12 + 16); i++)
-  {
-    uint8_t temp = uart_read(UART1, BLOCKING, &read);
-    // if temp is not null byte
-    if (temp != 0)
-    {
-      reject();
-      return;
-    }
-  }
-
-  // Compare to old version and abort if older (note special case for version 0).
   uint16_t old_version = *fw_version_address;
 
+
+<<<<<<< HEAD
+  uint8_t * sp = 0x100000;
+  uint8_t * auth_tag; //16
+  uint8_t * nonce; //12
+  uint8_t * ecc_signature; //28
+  auth_tag = 0x100000;
+  nonce = 0x100000+16;
+  ecc_signature = 0x100000+28;
+
+=======
+  // Write new firmware size and version to Flash
+  // size (temp pls change)
+  uint16_t size = 69;
+  // Create 32 bit word for flash programming, version is at lower address, size is at higher address
+  uint32_t metadata = ((size & 0xFFFF) << 16) | (version & 0xFFFF);
+  program_flash(METADATA_BASE, (uint8_t *)(&metadata), 4);
+
+  uart_write(UART1, OK); // Acknowledge the metadata.
+
+  uint8_t *sp = 0x100000;
+  int all_data_index = 0;
+>>>>>>> 3db49861a295bf8c1dd42eac6bf7a8159ac9107c
+  uint8_t frame_counter = 0;
+  // loops until data array becomes 64 null bytes
+  while (frame_counter*64 < MAX_FIRMWARE_SIZE)
+  {
+    // read 64 bytes of data from UART1
+    read_frame(UART1, sp + frame_counter * 64);
+
+    // if data is all null bytes, break loop
+    // sorry
+    if (*(sp+frame_counter*64+0) == 0 && *(sp+frame_counter*64+1) == 0 && *(sp+frame_counter*64+2) == 0 && *(sp+frame_counter*64+3) == 0 && *(sp+frame_counter*64+4) == 0 && *(sp+frame_counter*64+5) == 0 && *(sp+frame_counter*64+6) == 0 && *(sp+frame_counter*64+7) == 0 && *(sp+frame_counter*64+8) == 0 && *(sp+frame_counter*64+9) == 0 && *(sp+frame_counter*64+10) == 0 && *(sp+frame_counter*64+11) == 0 && *(sp+frame_counter*64+12) == 0 && *(sp+frame_counter*64+13) == 0 && *(sp+frame_counter*64+14) == 0 && *(sp+frame_counter*64+15) == 0 && *(sp+frame_counter*64+16) == 0 && *(sp+frame_counter*64+17) == 0 && *(sp+frame_counter*64+18) == 0 && *(sp+frame_counter*64+19) == 0 && *(sp+frame_counter*64+20) == 0 && *(sp+frame_counter*64+21) == 0 && *(sp+frame_counter*64+22) == 0 && *(sp+frame_counter*64+23) == 0 && *(sp+frame_counter*64+24) == 0 && *(sp+frame_counter*64+25) == 0 && *(sp+frame_counter*64+26) == 0 && *(sp+frame_counter*64+27) == 0 && *(sp+frame_counter*64+28) == 0 && *(sp+frame_counter*64+29) == 0 && *(sp+frame_counter*64+30) == 0 && *(sp+frame_counter*64+31) == 0 && *(sp+frame_counter*64+32) == 0 && *(sp+frame_counter*64+33) == 0 && *(sp+frame_counter*64+34) == 0 && *(sp+frame_counter*64+35) == 0 && *(sp+frame_counter*64+36) == 0 && *(sp+frame_counter*64+37) == 0 && *(sp+frame_counter*64+38) == 0 && *(sp+frame_counter*64+39) == 0 && *(sp+frame_counter*64+40) == 0 && *(sp+frame_counter*64+41) == 0 && *(sp+frame_counter*64+42) == 0 && *(sp+frame_counter*64+43) == 0 && *(sp+frame_counter*64+44) == 0 && *(sp+frame_counter*64+45) == 0 && *(sp+frame_counter*64+46) == 0 && *(sp+frame_counter*64+47) == 0 && *(sp+frame_counter*64+48) == 0 && *(sp+frame_counter*64+49) == 0 && *(sp+frame_counter*64+50) == 0 && *(sp+frame_counter*64+51) == 0 && *(sp+frame_counter*64+52) == 0 && *(sp+frame_counter*64+53) == 0 && *(sp+frame_counter*64+54) == 0 && *(sp+frame_counter*64+55) == 0 && *(sp+frame_counter*64+56) == 0 && *(sp+frame_counter*64+57) == 0 && *(sp+frame_counter*64+58) == 0 && *(sp+frame_counter*64+59) == 0 && *(sp+frame_counter*64+60) == 0 && *(sp+frame_counter*64+61) == 0 && *(sp+frame_counter*64+62) == 0 && *(sp+frame_counter*64+63) == 0)
+    {
+      break;
+    }
+    frame_counter += 1; // this is put afterwards so last frame isn't counted as a data frame even though null frame is written
+  }
+
+
+  // Compare to old version and abort if older (note special case for version 0).
+
+  
+  uart_write(UART1, OK); // Acknowledge the metadata.
+
+  
+
+
+  // Decrypt and verify
+
+  // Vignere decryption
+  for (int i = 0; i < 64 * frame_counter; i++)
+  {
+    *(sp + i) = V_KEY[i % 64] ^ *(sp + i);
+  }
+  //not a while loop for accidental nulls
+  
+
+  
+  char aad[0]; // Empty char array bc we're not using AAD
+
+  // GCM decrypt
+  if (gcm_decrypt_and_verify(AES_KEY, *nonce, ecc_signature, (frame_counter-1)*64-28, aad, 0, *auth_tag) != 1) //this prolly won't work
+    //first frame is tag and nonce so should be excluded
+  {
+    reject();
+    return;
+  }
+
+  // Grab all data excluding ECC signature
+  uint8_t * data_no_signature;
+  data_no_signature = ecc_signature+64; //find some way to null terminate
+
+  // Hash data
+  unsigned char hashed_data[32];
+  sha_hash(*data_no_signature, frame_counter*64-28-64, hashed_data);
+
+  // Verify ECC signature
+  if (br_ecdsa_i31_vrfy_asn1(&br_ec_p256_m31, hashed_data, 32, ECC_KEY, ecc_signature, 64) != 1)
+  {
+    reject();
+    return;
+  }
+  
+  uint16_t version = *(sp+28+64) | *(sp+28+64+1) << 8;
   if (version != 0 && version < old_version)
   {
     reject();
@@ -252,73 +312,9 @@ void load_firmware(void)
   }
 
   // Write new firmware size and version to Flash
-  // size (temp pls change)
-  uint16_t size = 69;
+  uint16_t fw_size = *(sp+28+64+2) | *(sp+28+64+3) << 8;
   // Create 32 bit word for flash programming, version is at lower address, size is at higher address
-  uint32_t metadata = ((size & 0xFFFF) << 16) | (version & 0xFFFF);
   program_flash(METADATA_BASE, (uint8_t *)(&metadata), 4);
-
-  uart_write(UART1, OK); // Acknowledge the metadata.
-
-  uint8_t *sp = 0x100000;
-  int all_data_index = 0;
-  uint8_t frame_counter = 0;
-  // loops until data array becomes 64 null bytes
-  while (all_data_index < MAX_FIRMWARE_SIZE)
-  {
-    // read 64 bytes of data from UART1
-    read_frame(UART1, sp + frame_counter * 64);
-
-    // if data is all null bytes, break loop
-    // sorry
-    if (data[0] == 0 && data[1] == 0 && data[2] == 0 && data[3] == 0 && data[4] == 0 && data[5] == 0 && data[6] == 0 && data[7] == 0 && data[8] == 0 && data[9] == 0 && data[10] == 0 && data[11] == 0 && data[12] == 0 && data[13] == 0 && data[14] == 0 && data[15] == 0 && data[16] == 0 && data[17] == 0 && data[18] == 0 && data[19] == 0 && data[20] == 0 && data[21] == 0 && data[22] == 0 && data[23] == 0 && data[24] == 0 && data[25] == 0 && data[26] == 0 && data[27] == 0 && data[28] == 0 && data[29] == 0 && data[30] == 0 && data[31] == 0 && data[32] == 0 && data[33] == 0 && data[34] == 0 && data[35] == 0 && data[36] == 0 && data[37] == 0 && data[38] == 0 && data[39] == 0 && data[40] == 0 && data[41] == 0 && data[42] == 0 && data[43] == 0 && data[44] == 0 && data[45] == 0 && data[46] == 0 && data[47] == 0 && data[48] == 0 && data[49] == 0 && data[50] == 0 && data[51] == 0 && data[52] == 0 && data[53] == 0 && data[54] == 0 && data[55] == 0 && data[56] == 0 && data[57] == 0 && data[58] == 0 && data[59] == 0 && data[60] == 0 && data[61] == 0 && data[62] == 0 && data[63] == 0)
-    {
-      break;
-    }
-    frame_counter += 1; // this is put afterwards so last frame isn't counted as a data frame even though null frame is written
-  }
-
-  // Decrypt and verify
-
-  // Vignere decryption
-  for (int i = 0; i < 64 * frame_counter; i++)
-  {
-    *(sp + i) = V_KEY[i % 64] ^ *(sp + i);
-  }
-  // not a while loop for accidental nulls
-
-  uint8_t *auth_tag;      // 16
-  uint8_t *nonce;         // 12
-  uint8_t *ecc_signature; // 64
-  auth_tag = 0x100000;
-  nonce = 0x100000 + 16;
-  ecc_signature = 0x100000 + 64;
-
-  char aad[0]; // Empty char array bc we're not using AAD
-
-  // GCM decrypt
-  if (gcm_decrypt_and_verify(AES_KEY, *nonce, 0x100000 + 64, (frame_counter - 1) * 64, aad, 0, *auth_tag) != 1) // this prolly won't work
-                                                                                                                // first frame is tag and nonce so should be excluded
-  {
-    reject();
-    return;
-  }
-
-  // Grab all data excluding ECC signature
-  uint8_t *data_no_signature;
-  data_no_signature = 0x100000 + 64 * 2; // find some way to null terminate
-
-  // Hash data
-  unsigned char hashed_data[32];
-  sha_hash(*data_no_signature, all_data_index - 64, hashed_data); // not sure which part is actually hashed
-
-  // Verify ECC signature
-  if (br_ecdsa_i31_vrfy_asn1(&br_ec_p256_m31, hashed_data, 32, ECC_KEY, ecc_signature, 64) != 1)
-  {
-    reject();
-    return;
-  }
-
   /* Loop here until you can get all your characters and stuff */
   while (1)
   {
