@@ -30,7 +30,7 @@ NONCE_SIZE = 12
 AUTH_TAG_SIZE = 16
 
 
-def do_handshake(ser, tag, nonce):
+def do_handshake(ser, tag, nonce, debug=False):
     # Handshake for update
     ser.write(b'U')
     
@@ -78,10 +78,6 @@ def main(ser, infile, debug):
     
     # Initiate update handshake with the server
     do_handshake(ser, tag, nonce, debug=debug)
-
-    # Send the frame 1
-    send_frame(ser, tag + nonce, debug=debug)
-        
     
     for idx, frame_start in enumerate(range(0, len(firmware), FRAME_SIZE)):
         data = firmware[frame_start: frame_start + FRAME_SIZE]

@@ -60,3 +60,4 @@ dkms.conf
 *.bin
 __pycache__
 secret_build_output.txt
+*.txt

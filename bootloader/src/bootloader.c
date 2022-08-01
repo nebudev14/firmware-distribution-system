@@ -196,7 +196,7 @@ void read_frame(uint8_t uart_num, uint8_t *data)
     instruction = uart_read(uart_num, BLOCKING, &resp);
     *(data + i) = instruction;
   }
-  uart_write(UART2, OK);
+  uart_write(UART1, OK);
 }
 
 void reject()
