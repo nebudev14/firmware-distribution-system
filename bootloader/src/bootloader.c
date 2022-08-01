@@ -199,7 +199,7 @@ void read_frame(uint8_t uart_num, uint8_t *data)
     *(data + i) = instruction;
     uart_write(UART2, instruction);
   }
-  nl(UART2, &resp);
+  nl(UART2);
   uart_write(UART1, OK);
 }
 
