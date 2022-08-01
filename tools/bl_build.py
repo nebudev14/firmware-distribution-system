@@ -19,7 +19,7 @@ FILE_DIR = pathlib.Path(__file__).parent.absolute()
 
 # converts binary string to c array so that we can take it in as input
 def arrayize(binary_string):
-    return '{' + ','.join(['0x' + x for x in binary_string.hex()]) + '}'
+    return '{' + ','.join([hex(char) for char in binary_string]) + '}'
 
 def copy_initial_firmware(binary_path):
     """
@@ -31,8 +31,6 @@ def copy_initial_firmware(binary_path):
     os.chdir(FILE_DIR)
     bootloader = FILE_DIR / '..' / 'bootloader'
     shutil.copy(binary_path, bootloader / 'src' / 'firmware.bin')
-
-
 def make_bootloader():
     """
     Build the bootloader from source.
@@ -46,9 +44,10 @@ def make_bootloader():
 
     aes_key = get_random_bytes(16)
     vkey = get_random_bytes(64)
+    aad = get_random_bytes(16)
     
     
-    ecc_key = ECC.generate(curve='ed25519')
+    ecc_key = ECC.generate(curve='p256')
 
     private_key = ecc_key.export_key(format='DER')
     public_key = ecc_key.public_key().export_key(format='DER')
@@ -59,8 +58,9 @@ def make_bootloader():
         f.write(private_key)
         f.write(public_key)
         f.write(vkey)
+        f.write(aad)
     subprocess.call('make clean', shell=True)
-    status = subprocess.call(f'make AES_KEY={arrayize(aes_key)} ECC_KEY={arrayize(public_key)} V_KEY={arrayize(vkey)}', shell=True)
+    status = subprocess.call(f'make AES={arrayize(aes_key)} ECC={arrayize(public_key)} VIG={arrayize(vkey)}', shell=True)
 
     # Return True if make returned 0, otherwise return False.
     return (status == 0)

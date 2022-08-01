@@ -63,6 +63,9 @@ BEARSSL=${LIB}/BearSSL
 include ./makedefs
 
 CFLAGS+=-g
+CFLAGS+=-D AES=${AES}
+CFLAGS+=-D VIG=${VIG}
+CFLAGS+=-D ECC=${ECC}
 
 #
 # Where to find header files that do not live in this directory.
