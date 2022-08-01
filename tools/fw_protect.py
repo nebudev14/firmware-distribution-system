@@ -21,7 +21,7 @@ def protect_firmware(infile, outfile, version, message):
         aes_key = secrets_file.read(16)
         priv_key = secrets_file.read(138) 
         pub_key = secrets_file.read(65)
-        vkey = secrets_f*ile.read(64)
+        vkey = secrets_file.read(64)
 
     # Append null-terminated message to end of firmware
     # Current frame: x (x <= 30 kB) Firmware + x (x <= 1 kB) Message + 1 Null
