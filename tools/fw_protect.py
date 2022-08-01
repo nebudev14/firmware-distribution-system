@@ -19,8 +19,8 @@ def protect_firmware(infile, outfile, version, message):
     # Load secret keys from file
     with open('secret_build_output.txt', 'rb') as secrets_file:
         aes_key = secrets_file.read(16)
-        priv_key = secrets_file.read(48) 
-        pub_key = secrets_file.read(32)
+        priv_key = secrets_file.read(138) 
+        pub_key = secrets_file.read(65)
         vkey = secrets_file.read(64)
 
     # Append null-terminated message to end of firmware

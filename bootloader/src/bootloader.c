@@ -44,7 +44,7 @@ void reject();
 #define MAX_FIRMWARE_SIZE 32768 // max firmware size of 32768 bytes
 #define AES_KEY_LENGTH 16
 #define V_KEY_LENGTH 64
-#define ECC_KEY_LENGTH 44
+#define ECC_KEY_LENGTH 65
 
 // Keys
 char AES_KEY[AES_KEY_LENGTH] = AES;
@@ -260,16 +260,15 @@ void load_firmware(void)
 
   uart_write(UART1, OK); // Acknowledge the metadata.
 
-  uint8_t * sp = 0x100000;
+  uint8_t *sp = 0x100000;
   int all_data_index = 0;
   uint8_t frame_counter = 0;
   // loops until data array becomes 64 null bytes
   while (all_data_index < MAX_FIRMWARE_SIZE)
   {
     // read 64 bytes of data from UART1
-    read_frame(UART1, sp+frame_counter*64);
-      
-    
+    read_frame(UART1, sp + frame_counter * 64);
+
     // if data is all null bytes, break loop
     // sorry
     if (data[0] == 0 && data[1] == 0 && data[2] == 0 && data[3] == 0 && data[4] == 0 && data[5] == 0 && data[6] == 0 && data[7] == 0 && data[8] == 0 && data[9] == 0 && data[10] == 0 && data[11] == 0 && data[12] == 0 && data[13] == 0 && data[14] == 0 && data[15] == 0 && data[16] == 0 && data[17] == 0 && data[18] == 0 && data[19] == 0 && data[20] == 0 && data[21] == 0 && data[22] == 0 && data[23] == 0 && data[24] == 0 && data[25] == 0 && data[26] == 0 && data[27] == 0 && data[28] == 0 && data[29] == 0 && data[30] == 0 && data[31] == 0 && data[32] == 0 && data[33] == 0 && data[34] == 0 && data[35] == 0 && data[36] == 0 && data[37] == 0 && data[38] == 0 && data[39] == 0 && data[40] == 0 && data[41] == 0 && data[42] == 0 && data[43] == 0 && data[44] == 0 && data[45] == 0 && data[46] == 0 && data[47] == 0 && data[48] == 0 && data[49] == 0 && data[50] == 0 && data[51] == 0 && data[52] == 0 && data[53] == 0 && data[54] == 0 && data[55] == 0 && data[56] == 0 && data[57] == 0 && data[58] == 0 && data[59] == 0 && data[60] == 0 && data[61] == 0 && data[62] == 0 && data[63] == 0)
@@ -280,37 +279,38 @@ void load_firmware(void)
   }
 
   // Decrypt and verify
-  
+
   // Vignere decryption
-  for (int i=0; i<64*frame_counter; i++){
-    *(sp + i) = V_KEY[i%64] ^ *(sp + i);
+  for (int i = 0; i < 64 * frame_counter; i++)
+  {
+    *(sp + i) = V_KEY[i % 64] ^ *(sp + i);
   }
-  //not a while loop for accidental nulls
-  
-  uint8_t * auth_tag; //16
-  uint8_t * nonce; //12
-  uint8_t * ecc_signature; //64
+  // not a while loop for accidental nulls
+
+  uint8_t *auth_tag;      // 16
+  uint8_t *nonce;         // 12
+  uint8_t *ecc_signature; // 64
   auth_tag = 0x100000;
-  nonce = 0x100000+16;
-  ecc_signature = 0x100000+64;
-  
+  nonce = 0x100000 + 16;
+  ecc_signature = 0x100000 + 64;
+
   char aad[0]; // Empty char array bc we're not using AAD
-  
+
   // GCM decrypt
-  if (gcm_decrypt_and_verify(AES_KEY, *nonce, 0x100000+64, (frame_counter-1)*64, aad, 0, *auth_tag) != 1) //this prolly won't work
-    //first frame is tag and nonce so should be excluded
+  if (gcm_decrypt_and_verify(AES_KEY, *nonce, 0x100000 + 64, (frame_counter - 1) * 64, aad, 0, *auth_tag) != 1) // this prolly won't work
+                                                                                                                // first frame is tag and nonce so should be excluded
   {
     reject();
     return;
   }
 
   // Grab all data excluding ECC signature
-  uint8_t * data_no_signature;
-  data_no_signature = 0x100000+64*2; //find some way to null terminate
+  uint8_t *data_no_signature;
+  data_no_signature = 0x100000 + 64 * 2; // find some way to null terminate
 
   // Hash data
   unsigned char hashed_data[32];
-  sha_hash(*data_no_signature, all_data_index - 64, hashed_data); //not sure which part is actually hashed
+  sha_hash(*data_no_signature, all_data_index - 64, hashed_data); // not sure which part is actually hashed
 
   // Verify ECC signature
   if (br_ecdsa_i31_vrfy_asn1(br_ec_p256_m31, hashed_data, 32, ECC_KEY, *ecc_signature, 64) != 1)
