@@ -30,13 +30,16 @@ NONCE_SIZE = 12
 AUTH_TAG_SIZE = 16
 
 
-def do_handshake(ser):
+def do_handshake(ser, tag, nonce):
     # Handshake for update
     ser.write(b'U')
     
     print('Waiting for bootloader to enter update mode...')
     while ser.read(1).decode() != 'U':
         pass
+
+    ser.write(tag)
+    ser.write(nonce)
 
 
 def send_frame(ser, frame, debug=False):
@@ -74,7 +77,7 @@ def main(ser, infile, debug):
     firmware = firmware_blob[28:]
     
     # Initiate update handshake with the server
-    do_handshake(ser, debug=debug)
+    do_handshake(ser, tag, nonce, debug=debug)
 
     # Send the frame 1
     send_frame(ser, tag + nonce, debug=debug)
