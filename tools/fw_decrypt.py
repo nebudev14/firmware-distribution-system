@@ -22,14 +22,16 @@ def decrypt_firmware(infile, outfile):
     vkey *= len(enc_firmware)//len(vkey)
     vkey += vkey[:len(enc_firmware)%len(vkey)]
 
+    # first 16 characters are the tag
+    tag = enc_firmware[:16]
+    # next 16 characters are the nonce
+    nonce = enc_firmware[16:32]
+
+    # rest of the data is the encrypted firmware
+    enc_firmware = enc_firmware[32:]
+
     # setup bootleg vigenere decryption
     decrypted_vigenere_firmware = bytes(a ^ b for a, b in zip(enc_firmware, vkey))
-    # first 16 characters are the tag
-    tag = decrypted_vigenere_firmware[:16]
-    # next 12 characters are the nonce
-    nonce = decrypted_vigenere_firmware[16:32]
-    # everything after tag is encrypted firmware
-    decrypted_vigenere_firmware = decrypted_vigenere_firmware[32:]
 
     # Decrypt firmware using AES-GCM
     cipher = AES.new(aes_key, AES.MODE_GCM, nonce)
@@ -43,7 +45,7 @@ def decrypt_firmware(infile, outfile):
     # deciphered firmware is equal to everything besides signature
     deciphered_firmware = deciphered_firmware[64:]
 
-    ecc_key = ECC.import_key(pub_key)
+    ecc_key = ECC.import_key(pub_key, curve_name='p256')
     verifier = DSS.new(ecc_key, 'fips-186-3')
 
     # hash deciphered firmware
