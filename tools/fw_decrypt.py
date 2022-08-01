@@ -44,7 +44,7 @@ def decrypt_firmware(infile, outfile):
     deciphered_firmware = deciphered_firmware[64:]
 
     ecc_key = ECC.import_key(pub_key)
-    verifier = DSS.new(ecc_key, 'rfc8032')
+    verifier = DSS.new(ecc_key, 'fips-186-3')
 
     # hash deciphered firmware
     firmware_blob_hash = SHA256.new(deciphered_firmware)
