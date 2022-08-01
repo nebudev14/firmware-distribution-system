@@ -260,7 +260,7 @@ void load_firmware(void)
 
   uart_write(UART1, OK); // Acknowledge the metadata.
 
-  uint8_t * sp = FW_MEM_BASE;
+  uint8_t * sp = 0x100000;
   int all_data_index = 0;
   uint8_t frame_counter = 0;
   // loops until data array becomes 64 null bytes
@@ -287,9 +287,9 @@ void load_firmware(void)
   }
   //not a while loop for accidental nulls
   
-  uint_8 * auth_tag; //16
-  uint_8 * nonce; //12
-  uint_8 * ecc_signature; //64
+  uint8_t * auth_tag; //16
+  uint8_t * nonce; //12
+  uint8_t * ecc_signature; //64
   auth_tag = 0x100000;
   nonce = 0x100000+16;
   ecc_signature = 0x100000+64;
@@ -305,7 +305,7 @@ void load_firmware(void)
   }
 
   // Grab all data excluding ECC signature
-  uint_8 * data_no_signature;
+  uint8_t * data_no_signature;
   data_no_signature = 0x100000+64*2; //find some way to null terminate
 
   // Hash data
