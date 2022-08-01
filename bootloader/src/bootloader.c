@@ -285,7 +285,7 @@ void load_firmware(void)
     return;
   }
   
-  uint16_t version = *(sp+28+64) | *(sp+28+64+1) << 8;
+  version = *(sp+28+64) | *(sp+28+64+1) << 8;
   if (version != 0 && version < old_version)
   {
     reject();
@@ -306,7 +306,8 @@ void load_firmware(void)
 
 
   // Flash everything in memory
-  for (int i=0; i<fw_size; i++){
+  int i=0;
+  for (; i<fw_size; i++){
     program_flash(FW_BASE,(uint8_t *)sp+28+64+4+i, 1);
   }
   // Write debugging messages to UART2.
