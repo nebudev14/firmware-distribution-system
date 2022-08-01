@@ -216,7 +216,6 @@ void load_firmware(void)
   uint16_t old_version = *fw_version_address;
 
 
-<<<<<<< HEAD
   uint8_t * sp = 0x100000;
   uint8_t * auth_tag; //16
   uint8_t * nonce; //12
@@ -225,19 +224,6 @@ void load_firmware(void)
   nonce = 0x100000+16;
   ecc_signature = 0x100000+28;
 
-=======
-  // Write new firmware size and version to Flash
-  // size (temp pls change)
-  uint16_t size = 69;
-  // Create 32 bit word for flash programming, version is at lower address, size is at higher address
-  uint32_t metadata = ((size & 0xFFFF) << 16) | (version & 0xFFFF);
-  program_flash(METADATA_BASE, (uint8_t *)(&metadata), 4);
-
-  uart_write(UART1, OK); // Acknowledge the metadata.
-
-  uint8_t *sp = 0x100000;
-  int all_data_index = 0;
->>>>>>> 3db49861a295bf8c1dd42eac6bf7a8159ac9107c
   uint8_t frame_counter = 0;
   // loops until data array becomes 64 null bytes
   while (frame_counter*64 < MAX_FIRMWARE_SIZE)
@@ -322,7 +308,8 @@ void load_firmware(void)
     // Get two bytes for the length.
     rcv = uart_read(UART1, BLOCKING, &read);
     frame_length = (int)rcv << 8;
-    rcv = uart_read(UART1, BLOCKING, &read);
+  uint16_t  = *(sp+28+64) | *(sp+28+64+1) << 8;
+    rcv = uart_read(UART1, BLOCKING, &read);C
     frame_length += (int)rcv;
 
     // Write length debug message
