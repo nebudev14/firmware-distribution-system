@@ -87,7 +87,10 @@ def main(ser, infile, debug):
 
         # Send the frame
         send_frame(ser, data, debug=debug)
-    
+
+    # send final frame
+    send_frame(ser, '', debug=debug)
+
     print("Done writing firmware.")
 
     # Send a zero length payload to tell the bootlader to finish writing it's page.
