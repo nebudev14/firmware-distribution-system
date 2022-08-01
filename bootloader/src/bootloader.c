@@ -247,11 +247,25 @@ void load_firmware(void)
     read_frame(UART1, sp + frame_counter * FRAME_LENGTH);
 
     // if data is all null bytes, break loop
-    // sorry
-    if (*(sp + frame_counter * FRAME_LENGTH + 0) == 0 && *(sp + frame_counter * FRAME_LENGTH + 1) == 0 && *(sp + frame_counter * FRAME_LENGTH + 2) == 0 && *(sp + frame_counter * FRAME_LENGTH + 3) == 0 && *(sp + frame_counter * FRAME_LENGTH + 4) == 0 && *(sp + frame_counter * FRAME_LENGTH + 5) == 0 && *(sp + frame_counter * FRAME_LENGTH + 6) == 0 && *(sp + frame_counter * FRAME_LENGTH + 7) == 0 && *(sp + frame_counter * FRAME_LENGTH + 8) == 0 && *(sp + frame_counter * FRAME_LENGTH + 9) == 0 && *(sp + frame_counter * FRAME_LENGTH + 10) == 0 && *(sp + frame_counter * FRAME_LENGTH + 11) == 0 && *(sp + frame_counter * FRAME_LENGTH + 12) == 0 && *(sp + frame_counter * FRAME_LENGTH + 13) == 0 && *(sp + frame_counter * FRAME_LENGTH + 14) == 0 && *(sp + frame_counter * FRAME_LENGTH + 15) == 0 && *(sp + frame_counter * FRAME_LENGTH + 16) == 0 && *(sp + frame_counter * FRAME_LENGTH + 17) == 0 && *(sp + frame_counter * FRAME_LENGTH + 18) == 0 && *(sp + frame_counter * FRAME_LENGTH + 19) == 0 && *(sp + frame_counter * FRAME_LENGTH + 20) == 0 && *(sp + frame_counter * FRAME_LENGTH + 21) == 0 && *(sp + frame_counter * FRAME_LENGTH + 22) == 0 && *(sp + frame_counter * FRAME_LENGTH + 23) == 0 && *(sp + frame_counter * FRAME_LENGTH + 24) == 0 && *(sp + frame_counter * FRAME_LENGTH + 25) == 0 && *(sp + frame_counter * FRAME_LENGTH + 26) == 0 && *(sp + frame_counter * FRAME_LENGTH + 27) == 0 && *(sp + frame_counter * FRAME_LENGTH + 28) == 0 && *(sp + frame_counter * FRAME_LENGTH + 29) == 0 && *(sp + frame_counter * FRAME_LENGTH + 30) == 0 && *(sp + frame_counter * FRAME_LENGTH + 31) == 0 && *(sp + frame_counter * FRAME_LENGTH + 32) == 0 && *(sp + frame_counter * FRAME_LENGTH + 33) == 0 && *(sp + frame_counter * FRAME_LENGTH + 34) == 0 && *(sp + frame_counter * FRAME_LENGTH + 35) == 0 && *(sp + frame_counter * FRAME_LENGTH + 36) == 0 && *(sp + frame_counter * FRAME_LENGTH + 37) == 0 && *(sp + frame_counter * FRAME_LENGTH + 38) == 0 && *(sp + frame_counter * FRAME_LENGTH + 39) == 0 && *(sp + frame_counter * FRAME_LENGTH + 40) == 0 && *(sp + frame_counter * FRAME_LENGTH + 41) == 0 && *(sp + frame_counter * FRAME_LENGTH + 42) == 0 && *(sp + frame_counter * FRAME_LENGTH + 43) == 0 && *(sp + frame_counter * FRAME_LENGTH + 44) == 0 && *(sp + frame_counter * FRAME_LENGTH + 45) == 0 && *(sp + frame_counter * FRAME_LENGTH + 46) == 0 && *(sp + frame_counter * FRAME_LENGTH + 47) == 0 && *(sp + frame_counter * FRAME_LENGTH + 48) == 0 && *(sp + frame_counter * FRAME_LENGTH + 49) == 0 && *(sp + frame_counter * FRAME_LENGTH + 50) == 0 && *(sp + frame_counter * FRAME_LENGTH + 51) == 0 && *(sp + frame_counter * FRAME_LENGTH + 52) == 0 && *(sp + frame_counter * FRAME_LENGTH + 53) == 0 && *(sp + frame_counter * FRAME_LENGTH + 54) == 0 && *(sp + frame_counter * FRAME_LENGTH + 55) == 0 && *(sp + frame_counter * FRAME_LENGTH + 56) == 0 && *(sp + frame_counter * FRAME_LENGTH + 57) == 0 && *(sp + frame_counter * FRAME_LENGTH + 58) == 0 && *(sp + frame_counter * FRAME_LENGTH + 59) == 0 && *(sp + frame_counter * FRAME_LENGTH + 60) == 0 && *(sp + frame_counter * FRAME_LENGTH + 61) == 0 && *(sp + frame_counter * FRAME_LENGTH + 62) == 0 && *(sp + frame_counter * FRAME_LENGTH + 63) == 0)
+    // uncursed version
+    int found_nonzero_byte = 0;
+    
+    for (int i = 0; i < 64; i++)
     {
-      break;
+      // checks if there is a non-zero byte
+      if (*(sp + frame_counter * 64 + i) != 0)
+      {
+        found_nonzero_byte = 1;
+        break;
+      }
+      
+      // stops if frame is all null bytes
+      if(! found_nonzero_byte)
+      {
+        break;
+      }
     }
+    
     frame_counter += 1; // this is put afterwards so last frame isn't counted as a data frame even though null frame is written
   }
 
