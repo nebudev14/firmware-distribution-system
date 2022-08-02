@@ -54,6 +54,7 @@ def protect_firmware(infile, outfile, version, message):
     # Create cipher object
     cipher = AES.new(aes_key, AES.MODE_GCM)
     nonce = cipher.nonce
+    cipher.update(bytes(16))
     encrypted_firmware_blob, tag = cipher.encrypt_and_digest(signed_firmware)
     
     # Current frame: 16 tag + 16 nonce + 64 ECC signature + 2 Version + 2 Firmware Length + x (x <= 30 kB) Firmware + x (x <= 1 kB) Message + 1 Null + x Padding
