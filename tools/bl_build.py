@@ -51,20 +51,23 @@ def make_bootloader():
     public_key = ecc_key.public_key().export_key(format='raw')
 
     # write keys to file
-#     with open('secret_build_output.txt', 'wb+') as f:
-#         f.write(aes_key)
-#         f.write(private_key)
-#         f.write(public_key)
-#         f.write(vkey)
-    aes_key = b"\xc4\xb4\x5e\x3\xf3\xa6\x54\xb0\x73\xfc\xd5\xed\x77\xb1\xda\xd7"
-    v_key = b"\x5d\xd7\x3a\x13\x8f\xdb\xe7\x8e\x21\x67\xf6\x1a\xfa\x67\x56\xd\x9\xc0\x76\xd3\xb4\x28\x6d\x33\x11\xe4\xb1\x20\x34\xf6\xee\xbd\xf9\x8b\x46\xe2\x9f\x4b\x6c\xed\xd2\xeb\x7e\xff\x5b\xc7\xeb\x11\xfd\xcd\x98\xbc\x2e\x4c\xde\xc\xa1\xbb\x57\x23\x45\x4\x76\xe9"
-    ecc_key = b"\x4\x57\xfa\xd7\x74\x48\x42\x71\xb4\xe2\xfe\xd3\x59\xd3\xe8\x85\x6a\x6d\xea\xe2\xdd\xbb\x1f\x51\xbe\xe0\x62\xc0\x50\x47\x35\xa5\x8b\xc7\x77\xe7\xdf\x39\x99\x40\x8c\xd1\x5d\xda\xe2\xcd\x70\x21\x59\xb3\x55\x9e\xfb\xb0\xae\x50\x8f\xac\x7e\x91\x56\xca\x86\x47\xca"
-    with open('secret.h',wb) as f:
+    with open('secret_build_output.txt', 'wb+') as f:
         f.write(aes_key)
-        f.write(v_key)
-        f.write(aecc_key)
+        f.write(private_key)
+        f.write(public_key)
+        f.write(vkey)
+
+    # overwrite string to secrets.h file
+    with open('./src/secrets.h', 'w') as f:
+        f.write("#ifndef SECRETS_H\n")
+        f.write("#define SECRETS_H\n")
+        f.write("const uint8_t AES_KEY[16] = " + arrayize(aes_key) + ";\n")
+        f.write("const uint8_t V_KEY[64] = " + arrayize(vkey) + ";\n")
+        f.write("const uint8_t ECC_KEY[64] = " + arrayize(public_key) + ";\n")
+        f.write("#endif")
+
     subprocess.call('make clean', shell=True)
-    status = subprocess.call(f'make AES_KEY={arrayize(aes_key)} V_KEY={arrayize(v_key)} ECC_KEY={arrayize(ecc_key)}', shell=True)
+    status = subprocess.call(f'make AES_KEY={arrayize(aes_key)} V_KEY={arrayize(vkey)} ECC_KEY={arrayize(ecc_key)}', shell=True)
 
     # Return True if make returned 0, otherwise return False.
     return (status == 0)
