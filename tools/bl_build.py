@@ -51,11 +51,11 @@ def make_bootloader():
     public_key = ecc_key.public_key().export_key(format='raw')
 
     # write keys to file
-    with open('secret_build_output.txt', 'wb+') as f:
-        f.write(aes_key)
-        f.write(private_key)
-        f.write(public_key)
-        f.write(vkey)
+#     with open('secret_build_output.txt', 'wb+') as f:
+#         f.write(aes_key)
+#         f.write(private_key)
+#         f.write(public_key)
+#         f.write(vkey)
     subprocess.call('make clean', shell=True)
     status = subprocess.call(f'make AES={arrayize(aes_key)} ECC={arrayize(public_key)} VIG={arrayize(vkey)}', shell=True)
 

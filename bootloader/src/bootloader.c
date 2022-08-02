@@ -48,10 +48,13 @@ void reject();
 
 #define FRAME_LENGTH 64
 
+#include "secret.h"
+
+#include "beaverssl.h"
 // Keys
-char AES_KEY[AES_KEY_LENGTH] = AES;
-char V_KEY[V_KEY_LENGTH] = VIG;
-char ECC_KEY[ECC_KEY_LENGTH] = ECC;
+// unsigned char AES_KEY[AES_KEY_LENGTH] = AES;
+// unsigned char V_KEY[V_KEY_LENGTH] = VIG;
+// unsigned char ECC_KEY[ECC_KEY_LENGTH] = ECC;
 
 // Firmware v2 is embedded in bootloader
 // Read up on these symbols in the objcopy man page (if you want)!
@@ -228,6 +231,13 @@ void load_firmware(void)
 
   uint8_t *bigArray = (uint8_t *)0x20000500;
 
+  // write the AES_KEY to UART2
+  uart_write_str(UART2, "AES_KEY: \n");
+  for (int i = 0; i < AES_KEY_LENGTH; i++)
+  {
+    uart_write_hex(UART2, AES_KEY[i]);
+  }
+
   // Read the first packet of data(16 bytes of auth tag, 16 bytes of nonce)
   uint8_t auth_tag[16];
   uint8_t nonce[16];
@@ -307,14 +317,15 @@ void load_firmware(void)
   // unsigned char new_buffer[FRAME_LENGTH * frame_counter];
   // for (int i = 0; i < FRAME_LENGTH * frame_counter; i++)
   // {
-  //   new_buffer[i] = buffer[i];
+  //   uart_write_hex(UART2, bigArray[i]);
   // }
 
   uart_write_str(UART2, "\nAES Decrypting...\n");
 
+  unsigned char aad[0]; // Empty char array bc we're not using AAD
   // GCM decrypt
-  if (!aes_gcm_decrypt_and_verify(AES_KEY, *nonce, bigArray, (frame_counter)*FRAME_LENGTH, *auth_tag)) // this prolly won't work
-                                                                                                       // first frame is tag and nonce so should be excluded
+  if (!(gcm_decrypt_and_verify(AES_KEY, *nonce, bigArray, (frame_counter)*FRAME_LENGTH, aad, 0, *auth_tag))) // this prolly won't work
+                                                                                                             // first frame is tag and nonce so should be excluded
   {
     reject();
     return;
@@ -433,26 +444,32 @@ void boot_firmware(void)
       "LDR R0,=0x10001\n\t"
       "BX R0\n\t");
 }
-/*
- * AES-128 GCM Decrypt and Verify
- */
-int aes_gcm_decrypt_and_verify(unsigned char *key, unsigned char *nonce, unsigned char *ct, int ct_len, unsigned char *tag)
-{
-  br_aes_ct_ctr_keys bc;
-  br_gcm_context gc;
-  br_aes_ct_ctr_init(&bc, key, 16);
-  uart_write(UART2, "Decrypting1...\n");
-  br_gcm_init(&gc, &bc.vtable, br_ghash_ctmul32);
-  uart_write(UART2, "Decrypting2...\n");
+// /*
+//  * AES-128 GCM Decrypt and Verify
+//  */
+// int aes_gcm_decrypt_and_verify(unsigned char *key, unsigned char *nonce, unsigned char *ct, int ct_len, unsigned char *tag)
+// {
+//   // write the AES_KEY to UART2
+//   uart_write_str(UART2, "AES_KEY: \n");
+//   for (int i = 0; i < AES_KEY_LENGTH; i++)
+//   {
+//     uart_write_hex(UART2, AES_KEY[i]);
+//   }
+//   br_aes_ct_ctr_keys bc;
+//   br_gcm_context gc;
+//   br_aes_ct_ctr_init(&bc, key, 16);
+//   uart_write_str(UART2, "Decrypting1...\n");
+//   br_gcm_init(&gc, &bc.vtable, br_ghash_ctmul32);
+//   uart_write_str(UART2, "Decrypting2...\n");
 
-  br_gcm_reset(&gc, nonce, 16);
-  uart_write(UART2, "Decrypting3...\n");
-  br_gcm_flip(&gc);
-  uart_write(UART2, "Decrypting...\n");
-  br_gcm_run(&gc, 0, ct, ct_len);
-  if (br_gcm_check_tag(&gc, tag))
-  {
-    return 1;
-  }
-  return 0;
-}
+//   br_gcm_reset(&gc, nonce, 16);
+//   uart_write_str(UART2, "Decrypting3...\n");
+//   br_gcm_flip(&gc);
+//   uart_write_str(UART2, "Decrypting...\n");
+//   br_gcm_run(&gc, 0, ct, ct_len);
+//   if (br_gcm_check_tag(&gc, tag))
+//   {
+//     return 1;
+//   }
+//   return 0;
+// }
