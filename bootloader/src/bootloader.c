@@ -8,7 +8,6 @@
 #include "driverlib/flash.h"     // FLASH API
 #include "driverlib/sysctl.h"    // System control API (clock/reset)
 #include "driverlib/interrupt.h" // Interrupt API
-#include "beaverssl.h"
 #include "bearssl.h"
 
 // Library Imports
@@ -23,6 +22,7 @@ void load_firmware(void);
 void boot_firmware(void);
 long program_flash(uint32_t, unsigned char *, unsigned int);
 void read_frame(uint8_t uart_num, uint8_t *data);
+int aes_gcm_decrypt_and_verify(char *key, char *nonce, char *ct, int ct_len, char *tag);
 void reject();
 
 // Firmware Constants
@@ -306,8 +306,8 @@ void load_firmware(void)
   uart_write_str(UART2, "\nAES Decrypting...\n");
 
   // GCM decrypt
-  if (gcm_decrypt_and_verify(AES_KEY, *nonce, buffer, (frame_counter)*FRAME_LENGTH, aad, 0, *auth_tag) != 1) // this prolly won't work
-                                                                                                             // first frame is tag and nonce so should be excluded
+  if (aes_gcm_decrypt_and_verify(AES_KEY, *nonce, buffer, (frame_counter)*FRAME_LENGTH, *auth_tag) != 1) // this prolly won't work
+                                                                                                         // first frame is tag and nonce so should be excluded
   {
     reject();
     return;
@@ -425,4 +425,23 @@ void boot_firmware(void)
   __asm(
       "LDR R0,=0x10001\n\t"
       "BX R0\n\t");
+}
+/*
+ * AES-128 GCM Decrypt and Verify
+ */
+int aes_gcm_decrypt_and_verify(char *key, char *nonce, char *ct, int ct_len, char *tag)
+{
+  br_aes_ct_ctr_keys bc;
+  br_gcm_context gc;
+  br_aes_ct_ctr_init(&bc, key, 16);
+  br_gcm_init(&gc, &bc.vtable, br_ghash_ctmul32);
+
+  br_gcm_reset(&gc, nonce, 16);
+  br_gcm_flip(&gc);
+  br_gcm_run(&gc, 0, ct, ct_len);
+  if (br_gcm_check_tag(&gc, tag))
+  {
+    return 1;
+  }
+  return 0;
 }
