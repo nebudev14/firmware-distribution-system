@@ -22,7 +22,7 @@ void load_firmware(void);
 void boot_firmware(void);
 long program_flash(uint32_t, unsigned char *, unsigned int);
 void read_frame(uint8_t uart_num, uint8_t *data);
-int aes_gcm_decrypt_and_verify(char *key, char *nonce, char *ct, int ct_len, char *tag);
+int aes_gcm_decrypt_and_verify(unsigned char *key, unsigned char *nonce, unsigned char *ct, int ct_len, unsigned char *tag);
 void reject();
 
 // Firmware Constants
@@ -64,7 +64,7 @@ uint16_t *fw_size_address = (uint16_t *)(METADATA_BASE + 2);
 uint8_t *fw_release_message_address;
 
 // Firmware Buffer
-unsigned char buffer[FLASH_PAGESIZE];
+// unsigned char buffer[FLASH_PAGESIZE];
 
 // define the ECC public key
 static const br_ec_public_key ECC_PUB_KEY = {.curve = BR_EC_secp256r1, .q = (void *)ECC_KEY, .qlen = sizeof(ECC_KEY)};
@@ -226,6 +226,8 @@ void load_firmware(void)
   uint8_t *ecc_signature;
   ecc_signature = 0x100000;
 
+  uint8_t *bigArray = (uint8_t *)0x20000500;
+
   // Read the first packet of data(16 bytes of auth tag, 16 bytes of nonce)
   uint8_t auth_tag[16];
   uint8_t nonce[16];
@@ -274,10 +276,10 @@ void load_firmware(void)
     // copy the data to the buffer array at index frame_counter * FRAME_LENGTH from frame_data
     for (int i = 0; i < FRAME_LENGTH; i++)
     {
-      buffer[frame_counter * FRAME_LENGTH + i] = frame_data[i];
-      uart_write_hex(UART2, buffer[frame_counter * FRAME_LENGTH + i]);
-      uart_write_hex(UART2, frame_counter * FRAME_LENGTH + i);
-      uart_write_str(UART2, "\n");
+      bigArray[frame_counter * FRAME_LENGTH + i] = frame_data[i];
+      // uart_write_hex(UART2, bigArray[frame_counter * FRAME_LENGTH + i]);
+      // uart_write_hex(UART2, frame_counter * FRAME_LENGTH + i);
+      // uart_write_str(UART2, "\n");
     }
 
     // increment the frame counter this is put afterwards so last frame isn't counted as a data frame even though null frame is written
@@ -296,25 +298,30 @@ void load_firmware(void)
   // Vignere decryption
   for (int i = 0; i < FRAME_LENGTH * frame_counter; i++)
   {
-    buffer[i] = V_KEY[i % FRAME_LENGTH] ^ buffer[i];
-    uart_write_hex(UART2, buffer[i]);
+    bigArray[i] = V_KEY[i % FRAME_LENGTH] ^ bigArray[i];
+    uart_write_hex(UART2, bigArray[i]);
   }
   // not a while loop for accidental nulls
 
-  char aad[0]; // Empty char array bc we're not using AAD
+  // // copy buffer data to new array
+  // unsigned char new_buffer[FRAME_LENGTH * frame_counter];
+  // for (int i = 0; i < FRAME_LENGTH * frame_counter; i++)
+  // {
+  //   new_buffer[i] = buffer[i];
+  // }
 
   uart_write_str(UART2, "\nAES Decrypting...\n");
 
   // GCM decrypt
-  if (aes_gcm_decrypt_and_verify(AES_KEY, *nonce, buffer, (frame_counter)*FRAME_LENGTH, *auth_tag) != 1) // this prolly won't work
-                                                                                                         // first frame is tag and nonce so should be excluded
+  if (!aes_gcm_decrypt_and_verify(AES_KEY, *nonce, bigArray, (frame_counter)*FRAME_LENGTH, *auth_tag)) // this prolly won't work
+                                                                                                       // first frame is tag and nonce so should be excluded
   {
     reject();
     return;
   }
 
   // data_no_signature points to the start of the data without the ECC signature in the buffer
-  uint8_t *data_no_signature = buffer + 64;
+  uint8_t *data_no_signature = bigArray + 64;
 
   uart_write_str(UART2, "\nECC Verifying...\n");
 
@@ -323,7 +330,7 @@ void load_firmware(void)
   sha_hash(*data_no_signature, frame_counter * FRAME_LENGTH - FRAME_LENGTH, hashed_data);
 
   // Verify ECC signature
-  if (br_ecdsa_i31_vrfy_asn1(&br_ec_p256_m31, hashed_data, 32, &ECC_PUB_KEY, buffer, 64) != 1)
+  if (br_ecdsa_i31_vrfy_asn1(&br_ec_p256_m31, hashed_data, 32, &ECC_PUB_KEY, bigArray, 64) != 1)
   {
     reject();
     return;
@@ -429,15 +436,19 @@ void boot_firmware(void)
 /*
  * AES-128 GCM Decrypt and Verify
  */
-int aes_gcm_decrypt_and_verify(char *key, char *nonce, char *ct, int ct_len, char *tag)
+int aes_gcm_decrypt_and_verify(unsigned char *key, unsigned char *nonce, unsigned char *ct, int ct_len, unsigned char *tag)
 {
   br_aes_ct_ctr_keys bc;
   br_gcm_context gc;
   br_aes_ct_ctr_init(&bc, key, 16);
+  uart_write(UART2, "Decrypting1...\n");
   br_gcm_init(&gc, &bc.vtable, br_ghash_ctmul32);
+  uart_write(UART2, "Decrypting2...\n");
 
   br_gcm_reset(&gc, nonce, 16);
+  uart_write(UART2, "Decrypting3...\n");
   br_gcm_flip(&gc);
+  uart_write(UART2, "Decrypting...\n");
   br_gcm_run(&gc, 0, ct, ct_len);
   if (br_gcm_check_tag(&gc, tag))
   {
