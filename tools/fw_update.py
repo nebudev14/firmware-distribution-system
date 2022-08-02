@@ -26,7 +26,7 @@ from serial import Serial
 
 RESP_OK = b'\x00'
 FRAME_SIZE = 64
-NONCE_SIZE = 12
+NONCE_SIZE = 16
 AUTH_TAG_SIZE = 16
 
 
@@ -79,6 +79,8 @@ def main(ser, infile, debug):
     # Initiate update handshake with the server
     do_handshake(ser, tag, nonce, debug=debug)
     
+    print(len(firmware))
+
     for idx, frame_start in enumerate(range(0, len(firmware), FRAME_SIZE)):
         data = firmware[frame_start: frame_start + FRAME_SIZE]
 
