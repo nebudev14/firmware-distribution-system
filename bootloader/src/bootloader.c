@@ -322,10 +322,10 @@ void load_firmware(void)
 
   uart_write_str(UART2, "\nAES Decrypting...\n");
 
-  unsigned char aad[0]; // Empty char array bc we're not using AAD
+  unsigned char aad[16]; // Empty char array bc we're not using AAD
   // GCM decrypt
-  if (!(gcm_decrypt_and_verify(AES_KEY, *nonce, bigArray, (frame_counter)*FRAME_LENGTH, aad, 0, *auth_tag))) // this prolly won't work
-                                                                                                             // first frame is tag and nonce so should be excluded
+  if (!(gcm_decrypt_and_verify(AES_KEY, *nonce, bigArray, (frame_counter)*FRAME_LENGTH, aad, 16, *auth_tag))) // this prolly won't work
+                                                                                                              // first frame is tag and nonce so should be excluded
   {
     reject();
     return;
