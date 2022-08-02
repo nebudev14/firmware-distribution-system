@@ -64,7 +64,7 @@ uint16_t *fw_size_address = (uint16_t *)(METADATA_BASE + 2);
 uint8_t *fw_release_message_address;
 
 // Firmware Buffer
-unsigned char data[FLASH_PAGESIZE];
+unsigned char buffer[FLASH_PAGESIZE];
 
 // define the ECC public key
 static const br_ec_public_key ECC_PUB_KEY = {.curve = BR_EC_secp256r1, .q = (void *)ECC_KEY, .qlen = sizeof(ECC_KEY)};
@@ -196,11 +196,11 @@ void read_frame(uint8_t uart_num, uint8_t *data)
   for (i = 0; i < FRAME_LENGTH; i++)
   {
     instruction = uart_read(uart_num, BLOCKING, &resp);
-    *(data + i) = instruction;
-    uart_write_hex(UART2, instruction);
+    data[i] = instruction;
+    // uart_write_hex(UART2, data[i]);
   }
-  nl(UART2);
-  uart_write(UART1, OK);
+  uart_write(UART1, OK); // tell client we received the frame
+  uart_write_str(UART2, "\nOK signal sent back\n");
 }
 
 void reject()
@@ -217,13 +217,12 @@ void load_firmware(void)
   int read = 0;
   uint32_t rcv = 0;
 
-  uint32_t data_index = 0;
   uint32_t page_addr = FW_BASE;
   uint32_t version = 0;
   uint16_t old_version = *fw_version_address;
 
   // define the storage pointer for the frame data
-  uint8_t *sp = 0x100000;
+  uint8_t *sp = (uint8_t *)0x100000;
   uint8_t *ecc_signature;
   ecc_signature = 0x100000;
 
@@ -240,11 +239,12 @@ void load_firmware(void)
   }
 
   uint8_t frame_counter = 0;
+  uint8_t frame_data[FRAME_LENGTH];
   // loops until data array becomes 64 null bytes
   while (frame_counter * FRAME_LENGTH < MAX_FIRMWARE_SIZE)
   {
     // read 64 bytes of data from UART1
-    read_frame(UART1, sp + frame_counter * FRAME_LENGTH);
+    read_frame(UART1, frame_data);
     uart_write_hex(UART2, frame_counter);
 
     // if data is all null bytes, break loop
@@ -253,8 +253,10 @@ void load_firmware(void)
 
     for (int i = 0; i < 64; i++)
     {
+      // prints the data to the UART2
+      uart_write_hex(UART2, frame_data[i]);
       // checks if there is a non-zero byte
-      if (*(sp + frame_counter * 64 + i) != 0)
+      if (frame_data[i] != 0)
       {
         found_nonzero_byte = 1;
         break;
@@ -263,10 +265,23 @@ void load_firmware(void)
     // stops if frame is all null bytes
     if (!found_nonzero_byte)
     {
+      uart_write_str(UART2, "All null bytes.\n");
       break;
     }
 
-    frame_counter += 1; // this is put afterwards so last frame isn't counted as a data frame even though null frame is written
+    uart_write_str(UART2, "\n");
+
+    // copy the data to the buffer array at index frame_counter * FRAME_LENGTH from frame_data
+    for (int i = 0; i < FRAME_LENGTH; i++)
+    {
+      buffer[frame_counter * FRAME_LENGTH + i] = frame_data[i];
+      uart_write_hex(UART2, buffer[frame_counter * FRAME_LENGTH + i]);
+      uart_write_hex(UART2, frame_counter * FRAME_LENGTH + i);
+      uart_write_str(UART2, "\n");
+    }
+
+    // increment the frame counter this is put afterwards so last frame isn't counted as a data frame even though null frame is written
+    frame_counter += 1;
     uart_write_hex(UART2, frame_counter);
   }
 
@@ -276,33 +291,39 @@ void load_firmware(void)
 
   // Decrypt and verify
 
+  uart_write_str(UART2, "\nVigenere Decrypting...\n");
+
   // Vignere decryption
   for (int i = 0; i < FRAME_LENGTH * frame_counter; i++)
   {
-    *(sp + i) = V_KEY[i % FRAME_LENGTH] ^ *(sp + i);
+    buffer[i] = V_KEY[i % FRAME_LENGTH] ^ buffer[i];
+    uart_write_hex(UART2, buffer[i]);
   }
   // not a while loop for accidental nulls
 
   char aad[0]; // Empty char array bc we're not using AAD
 
+  uart_write_str(UART2, "\nAES Decrypting...\n");
+
   // GCM decrypt
-  if (gcm_decrypt_and_verify(AES_KEY, *nonce, ecc_signature, (frame_counter - 1) * FRAME_LENGTH, aad, 0, *auth_tag) != 1) // this prolly won't work
-                                                                                                                          // first frame is tag and nonce so should be excluded
+  if (gcm_decrypt_and_verify(AES_KEY, *nonce, buffer, (frame_counter)*FRAME_LENGTH, aad, 0, *auth_tag) != 1) // this prolly won't work
+                                                                                                             // first frame is tag and nonce so should be excluded
   {
     reject();
     return;
   }
 
-  // Grab all data excluding ECC signature
-  uint8_t *data_no_signature;
-  data_no_signature = ecc_signature + 64; // find some way to null terminate
+  // data_no_signature points to the start of the data without the ECC signature in the buffer
+  uint8_t *data_no_signature = buffer + 64;
+
+  uart_write_str(UART2, "\nECC Verifying...\n");
 
   // Hash data
   unsigned char hashed_data[32];
   sha_hash(*data_no_signature, frame_counter * FRAME_LENGTH - FRAME_LENGTH, hashed_data);
 
   // Verify ECC signature
-  if (br_ecdsa_i31_vrfy_asn1(&br_ec_p256_m31, hashed_data, 32, &ECC_PUB_KEY, ecc_signature, 64) != 1)
+  if (br_ecdsa_i31_vrfy_asn1(&br_ec_p256_m31, hashed_data, 32, &ECC_PUB_KEY, buffer, 64) != 1)
   {
     reject();
     return;

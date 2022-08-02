@@ -52,13 +52,16 @@ def send_frame(ser, frame, debug=False):
     ser.write(frame)  # Write the frame...
 
     if debug:
-        print(frame)
+        print(frame.hex())
 
-    resp = ser.read()  # Wait for an OK from the bootloader
+    time.sleep(0.1)
+
+    resp = ser.read(1)  # Wait for an OK from the bootloader
 
     time.sleep(0.1)
 
     if resp != RESP_OK:
+        print(len(resp))
         raise RuntimeError("ERROR: Bootloader responded with {}".format(repr(resp)))
 
     if debug:
@@ -91,7 +94,7 @@ def main(ser, infile, debug):
         send_frame(ser, data, debug=debug)
 
     # send final frame
-    send_frame(ser, '', debug=debug)
+    send_frame(ser, b'', debug=debug)
 
     print("Done writing firmware.")
 
@@ -113,7 +116,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     print('Opening serial port...')
-    ser = Serial(args.port, baudrate=115200, timeout=2)
+    ser = Serial(args.port, baudrate=115200, timeout=20)
     main(ser=ser, infile=args.firmware, debug=args.debug)
 
 
