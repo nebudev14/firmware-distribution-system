@@ -43,13 +43,14 @@ def make_bootloader():
     aes_key = get_random_bytes(16)
     vkey = get_random_bytes(64)
     
+    # Generate ECC public and private keys
     ecc_key = ECC.generate(curve='p256')
 
     private_key = ecc_key.export_key(format='DER')
     public_key = ecc_key.public_key().export_key(format='raw')
     aad = get_random_bytes(16)
 
-    # write keys to file
+    # Write keys to secret_build_output.txt
     with open('secret_build_output.txt', 'wb+') as f:
         f.write(aes_key)
         f.write(private_key)
@@ -57,7 +58,8 @@ def make_bootloader():
         f.write(vkey)
         f.write(aad)
 
-    # overwrite string to secrets.h file
+    # Define our secrets into secrets.h
+    # This is still secure because we're generating new keys every boot which means it will not be the as the github repo keys
     with open('./src/secrets.h', 'w') as f:
         f.write("#ifndef SECRETS_H\n")
         f.write("#define SECRETS_H\n")

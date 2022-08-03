@@ -25,7 +25,7 @@ FRAME_SIZE = 64
 NONCE_SIZE = 16
 AUTH_TAG_SIZE = 16
 
-
+# This allows to initialize the connection between firmware and bootloader
 def do_handshake(ser, tag, nonce, debug=False):
     # Handshake for update
     ser.write(b'U')
@@ -34,6 +34,7 @@ def do_handshake(ser, tag, nonce, debug=False):
     while ser.read(1).decode() != 'U':
         pass
 
+    # We send the tag and nonce for AES separately from the main frame blob
     ser.write(tag)
     ser.write(nonce)
 
@@ -80,6 +81,7 @@ def main(ser, infile, debug):
     
     print(len(firmware))
 
+    # Iterate through the entire firmware blob
     for idx, frame_start in enumerate(range(0, len(firmware), FRAME_SIZE)):
         data = firmware[frame_start: frame_start + FRAME_SIZE]
 
@@ -94,7 +96,7 @@ def main(ser, infile, debug):
 
     print("Done writing firmware.")
 
-    # Send a zero length payload to tell the bootlader to finish writing it's page.
+    # Send a zero length payload to tell the bootlader to finish writing its page.
     ser.write(struct.pack('>H', 0x0000))
 
     return ser
