@@ -63,7 +63,7 @@ def make_bootloader():
         f.write("#define SECRETS_H\n")
         f.write("const uint8_t AES_KEY[16] = " + arrayize(aes_key) + ";\n")
         f.write("const uint8_t V_KEY[64] = " + arrayize(vkey) + ";\n")
-        f.write("const uint8_t ECC_KEY[64] = " + arrayize(public_key) + ";\n")
+        f.write("const uint8_t ECC_KEY[65] = " + arrayize(public_key) + ";\n")
         f.write("const uint8_t AAD[16] = " + arrayize(aad) + ";\n")
         f.write("#endif")
 

@@ -43,10 +43,8 @@ def protect_firmware(infile, outfile, version, message):
     
     # Hash firmware blob
     firmware_blob_hash = SHA256.new(firmware_blob)
-
-
     signature = signer.sign(firmware_blob_hash)
-
+    
     # Current frame: 64 ECC signature + 2 Version + 2 Firmware Length + x Firmware + x Message + 1 Null + x Padding
     signed_firmware = signature + firmware_blob
     
@@ -55,11 +53,7 @@ def protect_firmware(infile, outfile, version, message):
     cipher.update(aad)
     nonce = cipher.nonce
     encrypted_firmware_blob, tag = cipher.encrypt_and_digest(signed_firmware)
-    
-    print(nonce)
-    print(nonce.hex())
-    
-    
+        
     # Current frame: 16 tag + 16 nonce + 64 ECC signature + 2 Version + 2 Firmware Length + x (x <= 30 kB) Firmware + x (x <= 1 kB) Message + 1 Null + x Padding
     output = encrypted_firmware_blob
     

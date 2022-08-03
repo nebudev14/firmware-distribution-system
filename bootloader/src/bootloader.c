@@ -337,15 +337,17 @@ void load_firmware(void)
 
   // Hash data
   unsigned char hashed_data[32];
-  sha_hash(*data_no_signature, frame_counter * FRAME_LENGTH - FRAME_LENGTH, hashed_data);
-
+  sha_hash(data_no_signature, (frame_counter-1) * FRAME_LENGTH, hashed_data);
+    
   // Verify ECC signature
-  if (br_ecdsa_i31_vrfy_asn1(&br_ec_p256_m31, hashed_data, 32, &ECC_PUB_KEY, bigArray, 64) != 1)
+  if (br_ecdsa_i31_vrfy_raw(&br_ec_p256_m31, hashed_data, 32, &ECC_PUB_KEY, signature, 64) != 1)
   {
+    uart_write_str(UART2, "\nECC FAILED...\n");
     reject();
     return;
   }
-
+    uart_write_str(UART2, "\nECC VERIFIED...\n");
+    
   version = *(sp + 64) | *(sp + 64 + 1) << 8;
   if (version != 0 && version < old_version)
   {
