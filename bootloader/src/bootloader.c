@@ -191,7 +191,8 @@ int read_frame(uint8_t uart_num, uint8_t *data)
   for (i = 0; i < FRAME_LENGTH; i++)
   {
     instruction = uart_read(uart_num, BLOCKING, &resp);
-    if (!resp){
+    if (!resp)
+    {
       return 0;
       // Reading frame failed
     }
@@ -250,7 +251,8 @@ void load_firmware(void)
     resp = read_frame(UART1, frame_data);
 
     // If read_frame fails then crash
-    if (!resp){
+    if (!resp)
+    {
       reject();
       return;
     }
@@ -293,7 +295,7 @@ void load_firmware(void)
   // Compare to old version and abort if older (note special case for version 0).
 
   uart_write(UART1, OK); // Acknowledge the metadata.
-    
+
   // Decrypt and verify
   uart_write_str(UART2, "\nVigenere Decrypting...\n");
 
@@ -305,7 +307,6 @@ void load_firmware(void)
   }
   // not a while loop for accidental nulls
 
-    
   uart_write_str(UART2, "\nAES Decrypting...\n");
 
   // GCM decrypt
@@ -319,27 +320,29 @@ void load_firmware(void)
     reject();
     return;
   }
-    
+
   // data_no_signature points to the start of the data without the ECC signature in the buffer
   uint8_t *data_no_signature = bigArray + 64;
 
   uart_write_str(UART2, "\nECC Verifying...\n");
-  
-  // All my homies hate BearSSL  
+
+  // All my homies hate BearSSL
   char temp_data[(frame_counter - 1) * FRAME_LENGTH];
-  for(int i = 0; i < (frame_counter - 1) * FRAME_LENGTH; i++) {
+  for (int i = 0; i < (frame_counter - 1) * FRAME_LENGTH; i++)
+  {
     temp_data[i] = data_no_signature[i];
   }
-    
+
   // Hash data
   unsigned char hashed_data[32];
-  sha_hash(data_no_signature, (frame_counter-1) * FRAME_LENGTH, hashed_data);
-    
+  sha_hash(data_no_signature, (frame_counter - 1) * FRAME_LENGTH, hashed_data);
+
   char signature[64];
-  for(int i = 0; i < 64; i++) {
-      signature[i] = bigArray[i];
-  }  
-    
+  for (int i = 0; i < 64; i++)
+  {
+    signature[i] = bigArray[i];
+  }
+
   // Verify ECC signature
   if (br_ecdsa_i31_vrfy_raw(&br_ec_p256_m31, hashed_data, 32, &ECC_PUB_KEY, signature, 64) != 1)
   {
@@ -348,16 +351,17 @@ void load_firmware(void)
     return;
   }
   uart_write_str(UART2, "\nECC VERIFIED...\n");
-    
-  uart_write_str(UART2, "\nBig array after ECC\n");  
-  for(int i = 0; i < (frame_counter-1)*FRAME_LENGTH; i++) {
-      uart_write_hex(UART2, temp_data[i]);
-  }  
-      
+
+  uart_write_str(UART2, "\nBig array after ECC\n");
+  for (int i = 0; i < (frame_counter - 1) * FRAME_LENGTH; i++)
+  {
+    uart_write_hex(UART2, temp_data[i]);
+  }
+
   uart_write_str(UART2, "\n");
-  version = temp_data[0] << 8;
+  version = temp_data[1] << 8 | temp_data[0];
   uart_write_hex(UART2, version);
-    
+
   if (version != 0 && version < old_version)
   {
     uart_write_str(UART2, "\nVersion is older than current version.\n");
@@ -369,17 +373,21 @@ void load_firmware(void)
     // If debug firmware, don't change version
     uart_write_str(UART2, "\nDebug firmware.\n");
     version = old_version;
-  } 
-  else {
-    uart_write_str(UART2, "\nVersion is not cringe\n");
+  }
+  else if (version == 3)
+  {
+    uart_write_str(UART2, "\nVersion is 3.\n");
+    uart_write_hex(UART2, version);
+    uart_write_str(UART2, "\nVersion is not very cringerjs\n");
   }
 
   // Write new firmware size and version to Flash
   uint16_t fw_size = *(data_no_signature + 2) | *(data_no_signature + 3) << 8;
+  uart_write_str(UART2, "\nFirmware size: \n");
+  uart_write_hex(UART2, fw_size);
   // Create 32 bit word for flash programming, version is at lower address, size is at higher address
   program_flash(METADATA_BASE, (uint8_t *)version, 2);
   program_flash(METADATA_BASE, (uint8_t *)fw_size, 2);
-
   // Flash everything in memory
   int i = 0;
   for (; i < fw_size; i++)
