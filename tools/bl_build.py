@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """
 Bootloader Build Tool
-
 This tool is responsible for building the bootloader from source and copying
 the build outputs into the host tools directory for programming.
 """
@@ -34,7 +33,6 @@ def copy_initial_firmware(binary_path):
 def make_bootloader():
     """
     Build the bootloader from source.
-
     Return:
         True if successful, False otherwise.
     """
@@ -51,8 +49,6 @@ def make_bootloader():
     public_key = ecc_key.public_key().export_key(format='raw')
     aad = get_random_bytes(16)
 
-    print(len(public_key))
-    
     # write keys to file
     with open('secret_build_output.txt', 'wb+') as f:
         f.write(aes_key)
@@ -67,7 +63,7 @@ def make_bootloader():
         f.write("#define SECRETS_H\n")
         f.write("const uint8_t AES_KEY[16] = " + arrayize(aes_key) + ";\n")
         f.write("const uint8_t V_KEY[64] = " + arrayize(vkey) + ";\n")
-        f.write("const uint8_t ECC_KEY[65] = " + arrayize(public_key) + ";\n")
+        f.write("const uint8_t ECC_KEY[64] = " + arrayize(public_key) + ";\n")
         f.write("const uint8_t AAD[16] = " + arrayize(aad) + ";\n")
         f.write("#endif")
 

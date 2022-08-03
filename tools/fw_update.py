@@ -1,18 +1,14 @@
 #!/usr/bin/env python
 """
 Firmware Updater Tool
-
 A frame consists of two sections:
 1. Two bytes for the length of the data section
 2. A data section of length defined in the length section
-
 [ 0x02 ]  [ variable ]
 --------------------
 | Length | Data... |
 --------------------
-
 In our case, the data is from one line of the Intel Hex formated .hex file
-
 We write a frame to the bootloader, then wait for it to respond with an
 OK message so we can write the next frame. The OK message in this case is
 just a zero
@@ -118,5 +114,3 @@ if __name__ == '__main__':
     print('Opening serial port...')
     ser = Serial(args.port, baudrate=115200, timeout=20)
     main(ser=ser, infile=args.firmware, debug=args.debug)
-
-

@@ -1,6 +1,5 @@
 """
 Firmware Bundle-and-Protect Tool
-
 """
 import argparse
 import struct
@@ -51,22 +50,25 @@ def protect_firmware(infile, outfile, version, message):
     # Current frame: 64 ECC signature + 2 Version + 2 Firmware Length + x Firmware + x Message + 1 Null + x Padding
     signed_firmware = signature + firmware_blob
     
-    
     # Create cipher object
     cipher = AES.new(aes_key, AES.MODE_GCM)
     cipher.update(aad)
     nonce = cipher.nonce
     encrypted_firmware_blob, tag = cipher.encrypt_and_digest(signed_firmware)
     
+    print(nonce)
+    print(nonce.hex())
+    
+    
     # Current frame: 16 tag + 16 nonce + 64 ECC signature + 2 Version + 2 Firmware Length + x (x <= 30 kB) Firmware + x (x <= 1 kB) Message + 1 Null + x Padding
     output = encrypted_firmware_blob
     
 #     # Pad the Vigenere Key to fit all of the data
-#     vkey *= len(output)//len(vkey)
-#     vkey += vkey[:len(output)%len(vkey)]
+    vkey *= len(output)//len(vkey)
+    vkey += vkey[:len(output)%len(vkey)]
     
-#     # XOR Vigenere Key with output frame
-#     output = bytes(a ^ b for a, b in zip(output, vkey))
+    # XOR Vigenere Key with output frame
+    output = bytes(a ^ b for a, b in zip(output, vkey))
     
     # add tag and nonce to start of output
     output = tag + nonce + output
