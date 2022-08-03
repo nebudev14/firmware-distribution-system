@@ -67,7 +67,7 @@ def make_bootloader():
         f.write("#endif")
 
     subprocess.call('make clean', shell=True)
-    status = subprocess.call(f'make AES_KEY={arrayize(aes_key)} V_KEY={arrayize(vkey)} ECC_KEY={arrayize(ecc_key)}', shell=True)
+    status = subprocess.call(f'make AES_KEY={arrayize(aes_key)} V_KEY={arrayize(vkey)} ECC_KEY={arrayize(public_key)}', shell=True)
 
     # Return True if make returned 0, otherwise return False.
     return (status == 0)

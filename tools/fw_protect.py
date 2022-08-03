@@ -53,19 +53,19 @@ def protect_firmware(infile, outfile, version, message):
     
     # Create cipher object
     cipher = AES.new(aes_key, AES.MODE_GCM)
+    cipher.update(b'cccccccccccccccc')
     nonce = cipher.nonce
-    cipher.update(bytes(16))
     encrypted_firmware_blob, tag = cipher.encrypt_and_digest(signed_firmware)
     
     # Current frame: 16 tag + 16 nonce + 64 ECC signature + 2 Version + 2 Firmware Length + x (x <= 30 kB) Firmware + x (x <= 1 kB) Message + 1 Null + x Padding
     output = encrypted_firmware_blob
     
-    # Pad the Vigenere Key to fit all of the data
-    vkey *= len(output)//len(vkey)
-    vkey += vkey[:len(output)%len(vkey)]
+#     # Pad the Vigenere Key to fit all of the data
+#     vkey *= len(output)//len(vkey)
+#     vkey += vkey[:len(output)%len(vkey)]
     
-    # XOR Vigenere Key with output frame
-    output = bytes(a ^ b for a, b in zip(output, vkey))
+#     # XOR Vigenere Key with output frame
+#     output = bytes(a ^ b for a, b in zip(output, vkey))
     
     # add tag and nonce to start of output
     output = tag + nonce + output
