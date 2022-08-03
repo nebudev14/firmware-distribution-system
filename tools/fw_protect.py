@@ -22,6 +22,7 @@ def protect_firmware(infile, outfile, version, message):
         priv_key = secrets_file.read(138) 
         pub_key = secrets_file.read(65)
         vkey = secrets_file.read(64)
+        aad = secrets_file.read(16)
 
     # Append null-terminated message to end of firmware
     # Current frame: x (x <= 30 kB) Firmware + x (x <= 1 kB) Message + 1 Null
@@ -53,7 +54,7 @@ def protect_firmware(infile, outfile, version, message):
     
     # Create cipher object
     cipher = AES.new(aes_key, AES.MODE_GCM)
-    cipher.update(b'cccccccccccccccc')
+    cipher.update(aad)
     nonce = cipher.nonce
     encrypted_firmware_blob, tag = cipher.encrypt_and_digest(signed_firmware)
     

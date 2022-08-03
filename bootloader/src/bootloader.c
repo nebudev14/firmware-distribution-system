@@ -48,7 +48,7 @@ void reject();
 
 #define FRAME_LENGTH 64
 
-#include "secret.h"
+#include "secrets.h"
 
 #include "beaverssl.h"
 // Keys
@@ -322,14 +322,14 @@ void load_firmware(void)
 
   uart_write_str(UART2, "\nAES Decrypting...\n");
 
-  unsigned char aad[16]; // Empty char array bc we're not using AAD
   // GCM decrypt
-  if (!(gcm_decrypt_and_verify(AES_KEY, *nonce, bigArray, (frame_counter)*FRAME_LENGTH, aad, 16, *auth_tag))) // this prolly won't work
-                                                                                                              // first frame is tag and nonce so should be excluded
-  {
-    reject();
-    return;
-  }
+//   if (!(gcm_decrypt_and_verify(AES_KEY, nonce, bigArray, (frame_counter)*FRAME_LENGTH, AAD, 16, auth_tag))) // this prolly won't work
+//                                                                                                               // first frame is tag and nonce so should be excluded
+//   {
+//     uart_write_str(UART2, "faield aes");
+//     reject();
+//     return;
+//   }
 
   // data_no_signature points to the start of the data without the ECC signature in the buffer
   uint8_t *data_no_signature = bigArray + 64;

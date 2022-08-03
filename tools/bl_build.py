@@ -49,6 +49,7 @@ def make_bootloader():
 
     private_key = ecc_key.export_key(format='DER')
     public_key = ecc_key.public_key().export_key(format='raw')
+    aad = get_random_bytes(16)
 
     # write keys to file
     with open('secret_build_output.txt', 'wb+') as f:
@@ -56,6 +57,7 @@ def make_bootloader():
         f.write(private_key)
         f.write(public_key)
         f.write(vkey)
+        f.write(aad)
 
     # overwrite string to secrets.h file
     with open('./src/secrets.h', 'w') as f:
@@ -64,10 +66,11 @@ def make_bootloader():
         f.write("const uint8_t AES_KEY[16] = " + arrayize(aes_key) + ";\n")
         f.write("const uint8_t V_KEY[64] = " + arrayize(vkey) + ";\n")
         f.write("const uint8_t ECC_KEY[64] = " + arrayize(public_key) + ";\n")
+        f.write("const uint8_t AAD[16] = " + arrayize(aad) + ";\n")
         f.write("#endif")
 
     subprocess.call('make clean', shell=True)
-    status = subprocess.call(f'make AES_KEY={arrayize(aes_key)} V_KEY={arrayize(vkey)} ECC_KEY={arrayize(public_key)}', shell=True)
+    status = subprocess.call(f'make AES_KEY={arrayize(aes_key)} V_KEY={arrayize(vkey)} ECC_KEY={arrayize(public_key)} AAD={arrayize(aad)}', shell=True)
 
     # Return True if make returned 0, otherwise return False.
     return (status == 0)
