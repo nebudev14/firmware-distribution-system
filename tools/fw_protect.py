@@ -29,15 +29,17 @@ def protect_firmware(infile, outfile, version, message):
 
     # Pack version and size into two little-endian shorts
     metadata = struct.pack('<HH', version, len(firmware))
-
+    
     # Append firmware and message to metadata
     # Current frame: 2 Version + 2 Firmware Length + x (x <= 30 kB) Firmware + x (x <= 1 kB) Message + 1 Null
     firmware_blob = metadata + firmware_and_message
-
+    
     # Pad firmware blob 
     firmware_blob = pad(firmware_blob, 64)
-
-    # Sign using ECC fips-186-3
+    
+    print(firmware_blob.hex())
+    
+    # Sign using ECC rfc8032
     ecc_key = ECC.import_key(priv_key)
     signer = DSS.new(ecc_key, 'fips-186-3')
     
@@ -56,7 +58,7 @@ def protect_firmware(infile, outfile, version, message):
         
     # Current frame: 16 tag + 16 nonce + 64 ECC signature + 2 Version + 2 Firmware Length + x (x <= 30 kB) Firmware + x (x <= 1 kB) Message + 1 Null + x Padding
     output = encrypted_firmware_blob
-    
+
     # Pad the Vigenere Key to fit all of the data
     vkey *= len(output)//len(vkey)
     vkey += vkey[:len(output)%len(vkey)]
@@ -64,9 +66,9 @@ def protect_firmware(infile, outfile, version, message):
     # XOR Vigenere Key with output frame
     output = bytes(a ^ b for a, b in zip(output, vkey))
     
+    
     # add tag and nonce to start of output
     output = tag + nonce + output
-    
     # Write firmware blob to outfile
     with open(outfile, 'wb+') as outfile:
         outfile.write(output)

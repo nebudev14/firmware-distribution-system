@@ -293,7 +293,7 @@ void load_firmware(void)
   // Compare to old version and abort if older (note special case for version 0).
 
   uart_write(UART1, OK); // Acknowledge the metadata.
-
+    
   // Decrypt and verify
   uart_write_str(UART2, "\nVigenere Decrypting...\n");
 
@@ -305,6 +305,7 @@ void load_firmware(void)
   }
   // not a while loop for accidental nulls
 
+    
   uart_write_str(UART2, "\nAES Decrypting...\n");
 
   // GCM decrypt
@@ -318,26 +319,45 @@ void load_firmware(void)
     reject();
     return;
   }
-
+    
   // data_no_signature points to the start of the data without the ECC signature in the buffer
   uint8_t *data_no_signature = bigArray + 64;
 
   uart_write_str(UART2, "\nECC Verifying...\n");
-
+  
+  // All my homies hate BearSSL  
+  char temp_data[(frame_counter - 1) * FRAME_LENGTH];
+  for(int i = 0; i < (frame_counter - 1) * FRAME_LENGTH; i++) {
+    temp_data[i] = data_no_signature[i];
+  }
+    
   // Hash data
   unsigned char hashed_data[32];
-  sha_hash(data_no_signature, (frame_counter - 1) * FRAME_LENGTH, hashed_data);
-
+  sha_hash(data_no_signature, (frame_counter-1) * FRAME_LENGTH, hashed_data);
+    
+  char signature[64];
+  for(int i = 0; i < 64; i++) {
+      signature[i] = bigArray[i];
+  }  
+    
   // Verify ECC signature
-  if (br_ecdsa_i31_vrfy_raw(&br_ec_p256_m31, hashed_data, 32, &ECC_PUB_KEY, bigArray, 64) != 1)
+  if (br_ecdsa_i31_vrfy_raw(&br_ec_p256_m31, hashed_data, 32, &ECC_PUB_KEY, signature, 64) != 1)
   {
     uart_write_str(UART2, "\nECC FAILED...\n");
     reject();
     return;
   }
   uart_write_str(UART2, "\nECC VERIFIED...\n");
-
-  version = *(data_no_signature) | *(data_no_signature + 1) << 8;
+    
+  uart_write_str(UART2, "\nBig array after ECC\n");  
+  for(int i = 0; i < (frame_counter-1)*FRAME_LENGTH; i++) {
+      uart_write_hex(UART2, temp_data[i]);
+  }  
+      
+  uart_write_str(UART2, "\n");
+  version = temp_data[0] << 8;
+  uart_write_hex(UART2, version);
+    
   if (version != 0 && version < old_version)
   {
     uart_write_str(UART2, "\nVersion is older than current version.\n");
@@ -349,6 +369,9 @@ void load_firmware(void)
     // If debug firmware, don't change version
     uart_write_str(UART2, "\nDebug firmware.\n");
     version = old_version;
+  } 
+  else {
+    uart_write_str(UART2, "\nVersion is not cringe\n");
   }
 
   // Write new firmware size and version to Flash
