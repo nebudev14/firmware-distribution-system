@@ -21,7 +21,7 @@ void load_initial_firmware(void);
 void load_firmware(void);
 void boot_firmware(void);
 long program_flash(uint32_t, unsigned char *, unsigned int);
-void read_frame(uint8_t uart_num, uint8_t *data);
+int read_frame(uint8_t uart_num, uint8_t *data);
 void reject();
 
 // Firmware Constants
