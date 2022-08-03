@@ -220,10 +220,13 @@ void load_firmware(void)
   uint32_t version = 0;
   uint16_t old_version = *fw_version_address;
 
-  uint8_t *bigArray = (uint8_t *)0x20000500;
+  // write the old version to UART2
+  uart_write_str(UART2, "\nOld version: \n");
+  uart_write_hex(UART2, old_version);
+  uint8_t *bigArray = (uint8_t *)0x20005000;
 
   // write the AES_KEY to UART2
-  uart_write_str(UART2, "AES_KEY: \n");
+  uart_write_str(UART2, "\nAES_KEY: \n");
   for (int i = 0; i < AES_KEY_LENGTH; i++)
   {
     uart_write_hex(UART2, AES_KEY[i]);
@@ -326,13 +329,6 @@ void load_firmware(void)
 
   uart_write_str(UART2, "\nECC Verifying...\n");
 
-  // All my homies hate BearSSL
-  char temp_data[(frame_counter - 1) * FRAME_LENGTH];
-  for (int i = 0; i < (frame_counter - 1) * FRAME_LENGTH; i++)
-  {
-    temp_data[i] = data_no_signature[i];
-  }
-
   // Hash data
   unsigned char hashed_data[32];
   sha_hash(data_no_signature, (frame_counter - 1) * FRAME_LENGTH, hashed_data);
@@ -352,13 +348,21 @@ void load_firmware(void)
   }
   uart_write_str(UART2, "\nECC VERIFIED...\n");
 
+  uart_write_str(UART2, "\nBig array after ECC\n");
+  for (int i = 0; i < (frame_counter - 1) * FRAME_LENGTH; i++)
+  {
+    uart_write_hex(UART2, data_no_signature[i]);
+  }
+
   uart_write_str(UART2, "\n");
-  version = temp_data[1] << 8 | temp_data[0];
+  version = data_no_signature[1] << 8 | data_no_signature[0];
   uart_write_hex(UART2, version);
 
   if (version != 0 && version < old_version)
   {
     uart_write_str(UART2, "\nVersion is older than current version.\n");
+    uart_write_str(UART2, "\nCurrent version...\n");
+    uart_write_hex(UART2, old_version);
     reject();
     return;
   }
@@ -376,36 +380,9 @@ void load_firmware(void)
   }
 
   // Write new firmware size and version to Flash
-  uint16_t fw_size = temp_data[3] << 8 | temp_data[2];
+  uint16_t fw_size = *(data_no_signature + 2) | *(data_no_signature + 3) << 8;
   uart_write_str(UART2, "\nFirmware size: \n");
   uart_write_hex(UART2, fw_size);
- 
-    
-  // Parse message
-
-  // Find message length
-  uint16_t message_length = 0;
-  for (int i = fw_size; i < (frame_counter - 1) * FRAME_LENGTH; i++)
-  {
-    if(temp_data[i] == '\0') {
-      uart_write_str(UART2, "\nAAAAHHHHHHAHAHAHA\n");
-      message_length = i - (fw_size+4); // Subtract firmware size + metadata
-      break;
-    }
-  }
-    
-  uart_write_hex(UART2, message_length);  
-    
-//   uint16_t message_length = 0;
-//   uint16_t message_counter = fw_size;
-//   while(temp_data[message_counter] != '\0') {
-//     message_length++;
-//     message_counter++;
-//     uart_write_hex(UART2, message_length);
-//     uart_write_str(UART2, "\n");
-//   }
-    
-    
   // Create 32 bit word for flash programming, version is at lower address, size is at higher address
   program_flash(METADATA_BASE, (uint8_t *)version, 2);
   program_flash(METADATA_BASE, (uint8_t *)fw_size, 2);
