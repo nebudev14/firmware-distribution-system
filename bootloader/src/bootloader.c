@@ -382,9 +382,10 @@ void load_firmware(void)
   }
 
   // Write new firmware size and version to Flash
-  uint16_t fw_size = *(data_no_signature + 2) | *(data_no_signature + 3) << 8;
+  uint16_t fw_size = temp_data[3] << 8 | temp_data[2];
   uart_write_str(UART2, "\nFirmware size: \n");
   uart_write_hex(UART2, fw_size);
+
   // Create 32 bit word for flash programming, version is at lower address, size is at higher address
   program_flash(METADATA_BASE, (uint8_t *)version, 2);
   program_flash(METADATA_BASE, (uint8_t *)fw_size, 2);
