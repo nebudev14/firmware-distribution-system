@@ -317,7 +317,7 @@ void load_firmware(void)
   sha_hash(data_no_signature, (frame_counter - 1) * FRAME_LENGTH, hashed_data);
 
   // Verify ECC signature
-  if (br_ecdsa_i31_vrfy_raw(&br_ec_p256_m31, hashed_data, 32, &ECC_PUB_KEY, signature, 64) != 1)
+  if (br_ecdsa_i31_vrfy_raw(&br_ec_p256_m31, hashed_data, 32, &ECC_PUB_KEY, bigArray, 64) != 1)
   {
     uart_write_str(UART2, "\nECC FAILED...\n");
     reject();
@@ -325,7 +325,7 @@ void load_firmware(void)
   }
   uart_write_str(UART2, "\nECC VERIFIED...\n");
 
-  version = *(sp + 64) | *(sp + 64 + 1) << 8;
+  version = *(data_no_signature + 64) | *(data_no_signature + 64 + 1) << 8;
   if (version != 0 && version < old_version)
   {
     uart_write_str(UART2, "\nVersion is older than current version.\n");
@@ -340,7 +340,7 @@ void load_firmware(void)
   }
 
   // Write new firmware size and version to Flash
-  uint16_t fw_size = *(sp + 64 + 2) | *(sp + 64 + 3) << 8;
+  uint16_t fw_size = *(data_no_signature + 64 + 2) | *(data_no_signature + 64 + 3) << 8;
   // Create 32 bit word for flash programming, version is at lower address, size is at higher address
   program_flash(METADATA_BASE, (uint8_t *)version, 2);
   program_flash(METADATA_BASE, (uint8_t *)fw_size, 2);
@@ -349,11 +349,11 @@ void load_firmware(void)
   int i = 0;
   for (; i < fw_size; i++)
   {
-    program_flash(FW_BASE, (uint8_t *)sp + FRAME_LENGTH + 4 + i, 1);
+    program_flash(FW_BASE, (uint8_t *)data_no_signature + FRAME_LENGTH + 4 + i, 1);
   }
   // Write debugging messages to UART2.
   uart_write_str(UART2, "Firmware successfully programmed\nAddress: ");
-  uart_write_hex(UART2, sp + FRAME_LENGTH + 4 + i);
+  uart_write_hex(UART2, data_no_signature + FRAME_LENGTH + 4 + i);
   uart_write_str(UART2, "\nBytes: ");
   uart_write_hex(UART2, i);
   nl(UART2);
