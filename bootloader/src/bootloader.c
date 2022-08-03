@@ -22,7 +22,6 @@ void load_firmware(void);
 void boot_firmware(void);
 long program_flash(uint32_t, unsigned char *, unsigned int);
 void read_frame(uint8_t uart_num, uint8_t *data);
-int aes_gcm_decrypt_and_verify(unsigned char *key, unsigned char *nonce, unsigned char *ct, int ct_len, unsigned char *tag);
 void reject();
 
 // Firmware Constants
@@ -41,7 +40,7 @@ void reject();
 #define BOOT ((unsigned char)'B')
 
 // Size constants
-#define MAX_FIRMWARE_SIZE 32768 // max firmware size of 32768 bytes
+#define MAX_FIRMWARE_SIZE 32768
 #define AES_KEY_LENGTH 16
 #define V_KEY_LENGTH 64
 #define ECC_KEY_LENGTH 65
@@ -51,10 +50,6 @@ void reject();
 #include "secrets.h"
 
 #include "beaverssl.h"
-// Keys
-// unsigned char AES_KEY[AES_KEY_LENGTH] = AES;
-// unsigned char V_KEY[V_KEY_LENGTH] = VIG;
-// unsigned char ECC_KEY[ECC_KEY_LENGTH] = ECC;
 
 // Firmware v2 is embedded in bootloader
 // Read up on these symbols in the objcopy man page (if you want)!
@@ -65,9 +60,6 @@ extern int _binary_firmware_bin_size;
 uint16_t *fw_version_address = (uint16_t *)METADATA_BASE;
 uint16_t *fw_size_address = (uint16_t *)(METADATA_BASE + 2);
 uint8_t *fw_release_message_address;
-
-// Firmware Buffer
-// unsigned char buffer[FLASH_PAGESIZE];
 
 // define the ECC public key
 static const br_ec_public_key ECC_PUB_KEY = {.curve = BR_EC_secp256r1, .q = (void *)ECC_KEY, .qlen = sizeof(ECC_KEY)};
@@ -200,7 +192,6 @@ void read_frame(uint8_t uart_num, uint8_t *data)
   {
     instruction = uart_read(uart_num, BLOCKING, &resp);
     data[i] = instruction;
-    // uart_write_hex(UART2, data[i]);
   }
   uart_write(UART1, OK); // tell client we received the frame
   uart_write_str(UART2, "\nOK signal sent back\n");
@@ -218,16 +209,10 @@ void load_firmware(void)
 {
   int frame_length = 0;
   int read = 0;
-  uint32_t rcv = 0;
 
   uint32_t page_addr = FW_BASE;
   uint32_t version = 0;
   uint16_t old_version = *fw_version_address;
-
-  // define the storage pointer for the frame data
-  uint8_t *sp = (uint8_t *)0x100000;
-  uint8_t *ecc_signature;
-  ecc_signature = 0x100000;
 
   uint8_t *bigArray = (uint8_t *)0x20000500;
 
@@ -277,7 +262,7 @@ void load_firmware(void)
     // stops if frame is all null bytes
     if (!found_nonzero_byte)
     {
-      uart_write_str(UART2, "All null bytes.\n");
+      uart_write_str(UART2, "\nAll null bytes.\n");
       break;
     }
 
@@ -287,14 +272,10 @@ void load_firmware(void)
     for (int i = 0; i < FRAME_LENGTH; i++)
     {
       bigArray[frame_counter * FRAME_LENGTH + i] = frame_data[i];
-      // uart_write_hex(UART2, bigArray[frame_counter * FRAME_LENGTH + i]);
-      // uart_write_hex(UART2, frame_counter * FRAME_LENGTH + i);
-      // uart_write_str(UART2, "\n");
     }
 
     // increment the frame counter this is put afterwards so last frame isn't counted as a data frame even though null frame is written
     frame_counter += 1;
-    uart_write_hex(UART2, frame_counter);
   }
 
   // Compare to old version and abort if older (note special case for version 0).
@@ -312,20 +293,16 @@ void load_firmware(void)
   }
   // not a while loop for accidental nulls
 
-  // // copy buffer data to new array
-  // unsigned char new_buffer[FRAME_LENGTH * frame_counter];
-  // for (int i = 0; i < FRAME_LENGTH * frame_counter; i++)
-  // {
-  //   uart_write_hex(UART2, bigArray[i]);
-  // }
-
   uart_write_str(UART2, "\nAES Decrypting...\n");
 
   // GCM decrypt
-  if (!(gcm_decrypt_and_verify(AES_KEY, nonce, bigArray, (frame_counter)*FRAME_LENGTH, AAD, 16, auth_tag))) // this prolly won't work
-                                                                                                              // first frame is tag and nonce so should be excluded
+  if ((gcm_decrypt_and_verify(AES_KEY, nonce, bigArray, (frame_counter)*FRAME_LENGTH, AAD, 16, auth_tag)))
   {
-    uart_write_str(UART2, "faield aes");
+    uart_write_str(UART2, "\nDecryption successful.\n");
+  }
+  else
+  {
+    uart_write_str(UART2, "\nDecryption failed.\n");
     reject();
     return;
   }
@@ -337,8 +314,8 @@ void load_firmware(void)
 
   // Hash data
   unsigned char hashed_data[32];
-  sha_hash(data_no_signature, (frame_counter-1) * FRAME_LENGTH, hashed_data);
-    
+  sha_hash(data_no_signature, (frame_counter - 1) * FRAME_LENGTH, hashed_data);
+
   // Verify ECC signature
   if (br_ecdsa_i31_vrfy_raw(&br_ec_p256_m31, hashed_data, 32, &ECC_PUB_KEY, signature, 64) != 1)
   {
@@ -346,17 +323,19 @@ void load_firmware(void)
     reject();
     return;
   }
-    uart_write_str(UART2, "\nECC VERIFIED...\n");
-    
+  uart_write_str(UART2, "\nECC VERIFIED...\n");
+
   version = *(sp + 64) | *(sp + 64 + 1) << 8;
   if (version != 0 && version < old_version)
   {
+    uart_write_str(UART2, "\nVersion is older than current version.\n");
     reject();
     return;
   }
   else if (version == 0)
   {
     // If debug firmware, don't change version
+    uart_write_str(UART2, "\nDebug firmware.\n");
     version = old_version;
   }
 
@@ -445,32 +424,3 @@ void boot_firmware(void)
       "LDR R0,=0x10001\n\t"
       "BX R0\n\t");
 }
-// /*
-//  * AES-128 GCM Decrypt and Verify
-//  */
-// int aes_gcm_decrypt_and_verify(unsigned char *key, unsigned char *nonce, unsigned char *ct, int ct_len, unsigned char *tag)
-// {
-//   // write the AES_KEY to UART2
-//   uart_write_str(UART2, "AES_KEY: \n");
-//   for (int i = 0; i < AES_KEY_LENGTH; i++)
-//   {
-//     uart_write_hex(UART2, AES_KEY[i]);
-//   }
-//   br_aes_ct_ctr_keys bc;
-//   br_gcm_context gc;
-//   br_aes_ct_ctr_init(&bc, key, 16);
-//   uart_write_str(UART2, "Decrypting1...\n");
-//   br_gcm_init(&gc, &bc.vtable, br_ghash_ctmul32);
-//   uart_write_str(UART2, "Decrypting2...\n");
-
-//   br_gcm_reset(&gc, nonce, 16);
-//   uart_write_str(UART2, "Decrypting3...\n");
-//   br_gcm_flip(&gc);
-//   uart_write_str(UART2, "Decrypting...\n");
-//   br_gcm_run(&gc, 0, ct, ct_len);
-//   if (br_gcm_check_tag(&gc, tag))
-//   {
-//     return 1;
-//   }
-//   return 0;
-// }
