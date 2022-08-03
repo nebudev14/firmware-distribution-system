@@ -9,12 +9,15 @@
 #include "driverlib/sysctl.h"    // System control API (clock/reset)
 #include "driverlib/interrupt.h" // Interrupt API
 #include "bearssl.h"
+#include "beaverssl.h"
 
 // Library Imports
 #include <string.h>
 
 // Application Imports
 #include "uart.h"
+
+#include "secrets.h"
 
 // Forward Declarations
 void load_initial_firmware(void);
@@ -48,9 +51,7 @@ void reject();
 
 #define FRAME_LENGTH 64
 
-#include "secrets.h"
 
-#include "beaverssl.h"
 // Keys
 // unsigned char AES_KEY[AES_KEY_LENGTH] = AES;
 // unsigned char V_KEY[V_KEY_LENGTH] = VIG;
@@ -343,9 +344,11 @@ void load_firmware(void)
   // Verify ECC signature
   if (br_ecdsa_i31_vrfy_asn1(&br_ec_p256_m31, hashed_data, 32, &ECC_PUB_KEY, bigArray, 64) != 1)
   {
+    uart_write_str(UART2, "\nECC Failed...\n");  
     reject();
     return;
   }
+  uart_write_str(UART2, "\nECC VERIFIED...\n");
 
   version = *(sp + 64) | *(sp + 64 + 1) << 8;
   if (version != 0 && version < old_version)
