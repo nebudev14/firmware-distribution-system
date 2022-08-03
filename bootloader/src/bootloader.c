@@ -352,12 +352,6 @@ void load_firmware(void)
   }
   uart_write_str(UART2, "\nECC VERIFIED...\n");
 
-  uart_write_str(UART2, "\nBig array after ECC\n");
-  for (int i = 0; i < (frame_counter - 1) * FRAME_LENGTH; i++)
-  {
-    uart_write_hex(UART2, temp_data[i]);
-  }
-
   uart_write_str(UART2, "\n");
   version = temp_data[1] << 8 | temp_data[0];
   uart_write_hex(UART2, version);
@@ -385,7 +379,33 @@ void load_firmware(void)
   uint16_t fw_size = temp_data[3] << 8 | temp_data[2];
   uart_write_str(UART2, "\nFirmware size: \n");
   uart_write_hex(UART2, fw_size);
+ 
+    
+  // Parse message
 
+  // Find message length
+  uint16_t message_length = 0;
+  for (int i = fw_size; i < (frame_counter - 1) * FRAME_LENGTH; i++)
+  {
+    if(temp_data[i] == '\0') {
+      uart_write_str(UART2, "\nAAAAHHHHHHAHAHAHA\n");
+      message_length = i - (fw_size+4); // Subtract firmware size + metadata
+      break;
+    }
+  }
+    
+  uart_write_hex(UART2, message_length);  
+    
+//   uint16_t message_length = 0;
+//   uint16_t message_counter = fw_size;
+//   while(temp_data[message_counter] != '\0') {
+//     message_length++;
+//     message_counter++;
+//     uart_write_hex(UART2, message_length);
+//     uart_write_str(UART2, "\n");
+//   }
+    
+    
   // Create 32 bit word for flash programming, version is at lower address, size is at higher address
   program_flash(METADATA_BASE, (uint8_t *)version, 2);
   program_flash(METADATA_BASE, (uint8_t *)fw_size, 2);
