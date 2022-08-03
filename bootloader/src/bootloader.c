@@ -182,8 +182,8 @@ void load_initial_firmware(void)
   }
 }
 
-// read a 64 byte frame of data from specified UART interface
-void read_frame(uint8_t uart_num, uint8_t *data)
+// read a 64 byte frame of data from specified UART interface to data location
+int read_frame(uint8_t uart_num, uint8_t *data)
 {
   uint32_t instruction;
   int resp;
@@ -191,10 +191,15 @@ void read_frame(uint8_t uart_num, uint8_t *data)
   for (i = 0; i < FRAME_LENGTH; i++)
   {
     instruction = uart_read(uart_num, BLOCKING, &resp);
+    if (!resp){
+      return 0;
+      // Reading frame failed
+    }
     data[i] = instruction;
   }
   uart_write(UART1, OK); // tell client we received the frame
   uart_write_str(UART2, "\nOK signal sent back\n");
+  return 1; // Reading frame was a success
 }
 
 void reject()
@@ -237,11 +242,18 @@ void load_firmware(void)
 
   uint8_t frame_counter = 0;
   uint8_t frame_data[FRAME_LENGTH];
+  int resp;
   // loops until data array becomes 64 null bytes
   while (frame_counter * FRAME_LENGTH < MAX_FIRMWARE_SIZE)
   {
     // read 64 bytes of data from UART1
-    read_frame(UART1, frame_data);
+    resp = read_frame(UART1, frame_data);
+
+    // If read_frame fails then crash
+    if (!resp){
+      reject();
+      return;
+    }
     uart_write_hex(UART2, frame_counter);
 
     // if data is all null bytes, break loop
