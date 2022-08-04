@@ -26,7 +26,6 @@ def protect_firmware(infile, outfile, version, message):
     # Append null-terminated message to end of firmware
     # Current frame: x (x <= 30 kB) Firmware + x (x <= 1 kB) Message + 1 Null
     firmware_and_message = firmware + message.encode() + b'\00'
-    print(firmware_and_message.hex())
     # Pack version and size into two little-endian shorts
     metadata = struct.pack('<HH', version, len(firmware))
     
