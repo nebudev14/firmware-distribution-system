@@ -25,8 +25,8 @@ def protect_firmware(infile, outfile, version, message):
 
     # Append null-terminated message to end of firmware
     # Current frame: x (x <= 30 kB) Firmware + x (x <= 1 kB) Message + 1 Null
-    firmware_and_message = firmware + message.encode('utf-8') + b'\0x00'
-
+    firmware_and_message = firmware + message.encode() + b'\00'
+    print(firmware_and_message.hex())
     # Pack version and size into two little-endian shorts
     metadata = struct.pack('<HH', version, len(firmware))
     
@@ -36,8 +36,6 @@ def protect_firmware(infile, outfile, version, message):
     
     # Pad firmware blob 
     firmware_blob = pad(firmware_blob, 64)
-    
-
     
     # Sign using ECC rfc8032
     ecc_key = ECC.import_key(priv_key)
@@ -65,7 +63,6 @@ def protect_firmware(infile, outfile, version, message):
     
     # XOR Vigenere Key with output frame
     output = bytes(a ^ b for a, b in zip(output, vkey))
-    
     
     # add tag and nonce to start of output
     output = tag + nonce + output

@@ -437,10 +437,12 @@ void load_firmware(void)
   // print metadata
   uart_write_str(UART2, "\nMetadata: \n");
   uart_write_hex(UART2, metadata);
+  nl(UART2);
   int i = 0;
   for (; i < fw_size; i++)
   {
-    program_flash(FW_BASE, (uint8_t *)fw_data + i, 1);
+    uart_write_hex(UART2, *(fw_data + i));  
+    program_flash(FW_BASE, (uint8_t *)(fw_data + i), 1);
   }
   
   for(int i = 0; i < message_length; i++) {
