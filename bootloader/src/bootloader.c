@@ -51,6 +51,8 @@ void reject();
 
 #include "beaverssl.h"
 
+#define DEBUG 0
+
 // Firmware v2 is embedded in bootloader
 // Read up on these symbols in the objcopy man page (if you want)!
 extern int _binary_firmware_bin_start;
@@ -199,12 +201,15 @@ int read_frame(uint8_t uart_num, uint8_t *data)
     data[i] = instruction;
   }
   uart_write(UART1, OK); // tell client we received the frame
+#ifdef DEBUG
   uart_write_str(UART2, "\nOK signal sent back\n");
+#endif
   return 1; // Reading frame was a success
 }
 
 void reject()
 {
+  uart_write_str(UART2, "\nSomething went wrong - rejecting data and resetting device.\n");
   uart_write(UART1, ERROR); // tell client there is error
   SysCtlReset();            // Reset device
 }
@@ -216,21 +221,24 @@ void load_firmware(void)
   int frame_length = 0;
   int read = 0;
 
+  uint32_t fw_version;
+  uint32_t fw_size;
+
   uint32_t page_addr = FW_BASE;
-  uint32_t version = 0;
   uint16_t old_version = *fw_version_address;
 
+#ifdef DEBUG
   // write the old version to UART2
   uart_write_str(UART2, "\nOld version: \n");
   uart_write_hex(UART2, old_version);
-  uint8_t *bigArray = (uint8_t *)0x20005000;
-
   // write the AES_KEY to UART2
   uart_write_str(UART2, "\nAES_KEY: \n");
   for (int i = 0; i < AES_KEY_LENGTH; i++)
   {
     uart_write_hex(UART2, AES_KEY[i]);
   }
+#endif
+  uint8_t *bigArray = (uint8_t *)0x20005000;
 
   // Read the first packet of data(16 bytes of auth tag, 16 bytes of nonce)
   uint8_t auth_tag[16];
@@ -259,8 +267,6 @@ void load_firmware(void)
       reject();
       return;
     }
-    uart_write_hex(UART2, frame_counter);
-
     // if data is all null bytes, break loop
     // uncursed version
     int found_nonzero_byte = 0;
@@ -279,47 +285,49 @@ void load_firmware(void)
     // stops if frame is all null bytes
     if (!found_nonzero_byte)
     {
+#ifdef DEBUG
       uart_write_str(UART2, "\nAll null bytes.\n");
+#endif
       break;
     }
-
-    uart_write_str(UART2, "\n");
-
     // copy the data to the buffer array at index frame_counter * FRAME_LENGTH from frame_data
     for (int i = 0; i < FRAME_LENGTH; i++)
     {
       bigArray[frame_counter * FRAME_LENGTH + i] = frame_data[i];
     }
 
-    // increment the frame counter this is put afterwards so last frame isn't counted as a data frame even though null frame is written
+    // increment the frame counter; this is put afterwards so last frame isn't counted as a data frame even though null frame is written
     frame_counter += 1;
   }
 
-  // Compare to old version and abort if older (note special case for version 0).
-
-  uart_write(UART1, OK); // Acknowledge the metadata.
-
+#ifdef DEBUG
   // Decrypt and verify
   uart_write_str(UART2, "\nVigenere Decrypting...\n");
+#endif
 
   // Vignere decryption
   for (int i = 0; i < FRAME_LENGTH * frame_counter; i++)
   {
     bigArray[i] = V_KEY[i % FRAME_LENGTH] ^ bigArray[i];
-    uart_write_hex(UART2, bigArray[i]);
   }
   // not a while loop for accidental nulls
 
+#ifdef DEBUG
   uart_write_str(UART2, "\nAES Decrypting...\n");
+#endif
 
   // GCM decrypt
   if ((gcm_decrypt_and_verify(AES_KEY, nonce, bigArray, (frame_counter)*FRAME_LENGTH, AAD, 16, auth_tag)))
   {
+#ifdef DEBUG
     uart_write_str(UART2, "\nDecryption successful.\n");
+#endif
   }
   else
   {
+#ifdef DEBUG
     uart_write_str(UART2, "\nDecryption failed.\n");
+#endif
     reject();
     return;
   }
@@ -327,7 +335,9 @@ void load_firmware(void)
   // data_no_signature points to the start of the data without the ECC signature in the buffer
   uint8_t *data_no_signature = bigArray + 64;
 
+#ifdef DEBUG
   uart_write_str(UART2, "\nECC Verifying...\n");
+#endif
 
   // Hash data
   unsigned char hashed_data[32];
@@ -342,10 +352,14 @@ void load_firmware(void)
   // Verify ECC signature
   if (br_ecdsa_i31_vrfy_raw(&br_ec_p256_m31, hashed_data, 32, &ECC_PUB_KEY, signature, 64) != 1)
   {
+#ifdef DEBUG
     uart_write_str(UART2, "\nECC FAILED...\n");
+#endif
     reject();
     return;
   }
+
+#ifdef DEBUG
   uart_write_str(UART2, "\nECC VERIFIED...\n");
 
   uart_write_str(UART2, "\nBig array after ECC\n");
@@ -355,10 +369,11 @@ void load_firmware(void)
   }
 
   uart_write_str(UART2, "\n");
-  version = data_no_signature[1] << 8 | data_no_signature[0];
-  uart_write_hex(UART2, version);
-
-  if (version != 0 && version < old_version)
+#endif
+  fw_size = data_no_signature[3] << 8 | data_no_signature[2];
+  fw_version = data_no_signature[1] << 8 | data_no_signature[0];
+  // Compare to old version and abort if older (note special case for version 0).
+  if (fw_version != 0 && fw_version < old_version)
   {
     uart_write_str(UART2, "\nVersion is older than current version.\n");
     uart_write_str(UART2, "\nCurrent version...\n");
@@ -366,34 +381,58 @@ void load_firmware(void)
     reject();
     return;
   }
-  else if (version == 0)
+  else if (fw_version == 0)
   {
     // If debug firmware, don't change version
     uart_write_str(UART2, "\nDebug firmware.\n");
-    version = old_version;
+    fw_version = old_version;
   }
-  else if (version == 3)
+  else if (fw_version == 3)
   {
     uart_write_str(UART2, "\nVersion is 3.\n");
-    uart_write_hex(UART2, version);
+    uart_write_hex(UART2, fw_version);
     uart_write_str(UART2, "\nVersion is not very cringerjs\n");
   }
+  // Parse message
 
   // Write new firmware size and version to Flash
-  uint16_t fw_size = *(data_no_signature + 2) | *(data_no_signature + 3) << 8;
+  // Create 32 bit word for flash programming, version is at lower address, size is at higher address
+  uint32_t metadata = ((fw_size & 0xFFFF) << 16) | (fw_version & 0xFFFF);
+  program_flash(METADATA_BASE, (uint8_t *)(&metadata), 4);
+  fw_release_message_address = (uint8_t *)(FW_BASE + fw_size);
+
+#ifdef DEBUG
   uart_write_str(UART2, "\nFirmware size: \n");
   uart_write_hex(UART2, fw_size);
-  // Create 32 bit word for flash programming, version is at lower address, size is at higher address
-  program_flash(METADATA_BASE, (uint8_t *)version, 2);
-  program_flash(METADATA_BASE, (uint8_t *)fw_size, 2);
+#endif
+
+  // increment to pointer as to not include the metadata in the firmware
+  uint8_t *fw_data = data_no_signature + 4;
+
+  // Find message length so we can get rid of padding
+  uint16_t message_length = 0;
+  for (int i = 0; i < (frame_counter - 1) * FRAME_LENGTH; i++)
+  {
+    if (fw_data[i + fw_size] == 0)
+    {
+      message_length = i; // Subtract firmware size + metadata
+      break;
+    }
+  }
+
+  uart_write_hex(UART2, message_length);
+
+  // Write new firmware size and version to Flash
+
   // Flash everything in memory
   int i = 0;
   for (; i < fw_size; i++)
   {
-    program_flash(FW_BASE, (uint8_t *)data_no_signature + 4 + i, 1);
+    program_flash(FW_BASE, (uint8_t *)fw_data + i, 1);
   }
+
   // Write debugging messages to UART2.
-  uart_write_str(UART2, "Firmware successfully programmed\nAddress: ");
+  uart_write_str(UART2, "\nFirmware successfully programmed\nAddress: ");
   uart_write_hex(UART2, data_no_signature + 4 + i);
   uart_write_str(UART2, "\nBytes: ");
   uart_write_hex(UART2, i);
