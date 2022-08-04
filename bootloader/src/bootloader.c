@@ -437,8 +437,8 @@ void load_firmware(void)
   }
 
   // Create 32 bit word for flash programming, version is at lower address, size is at higher address
-  program_flash(METADATA_BASE, (uint8_t *)version, 2);
-  program_flash(METADATA_BASE, (uint8_t *)fw_size, 2);
+  // program_flash(METADATA_BASE, (uint8_t *)fw_version, 2);
+  // program_flash(METADATA_BASE, (uint8_t *)fw_size, 2);
   // Flash everything in memory
   int i = 0;
   for (; i < fw_size; i++)
