@@ -79,7 +79,7 @@ ECC_Signature = AES_Decrypted_Data[:64]
 Encrypted_Firmware_Blob = AES_Decrypted_Data[64:]
 #Extract ECC data
 
-Unencrypted_Firmware_Blob = ECC_Verify_And_Decrypt(ECC_Signat
+Unencrypted_Firmware_Blob = ECC_Verify_And_Decrypt(ECC_Signature)
 #Verify our ECC signature
 
 Version = Unencrypted_Firmware_Blob[:2]
