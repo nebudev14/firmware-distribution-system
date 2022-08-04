@@ -4,10 +4,11 @@ Firmware Updater Tool
 A frame consists of two sections:
 1. Two bytes for the length of the data section
 2. A data section of length defined in the length section
-[ 0x02 ]  [ variable ]
---------------------
-| Length | Data... |
---------------------
+
+x represents some number of padding depends on the how large the encoding of firmware is.
+
+[ 16 Tag ] | [ 16 Nonce ] | [ 64 ECC key ] | [ 2 bytes Version ] | [ 2 bytes Firmware Length ] | [ x Firmware ] | [ x Message ] | [ 1 Null Byte ] | [ x Padding ] | [ 64 Padding ] 
+
 In our case, the data is from one line of the Intel Hex formated .hex file
 We write a frame to the bootloader, then wait for it to respond with an
 OK message so we can write the next frame. The OK message in this case is
