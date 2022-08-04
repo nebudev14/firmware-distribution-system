@@ -59,8 +59,8 @@ extern int _binary_firmware_bin_start;
 extern int _binary_firmware_bin_size;
 
 // Device metadata
-uint16_t *fw_version_address = (uint16_t *)METADATA_BASE;
-uint16_t *fw_size_address = (uint16_t *)(METADATA_BASE + 2);
+const uint16_t *fw_version_address = (uint16_t *)METADATA_BASE;
+const uint16_t *fw_size_address = (uint16_t *)(METADATA_BASE + 2);
 uint8_t *fw_release_message_address;
 
 // define the ECC public key
@@ -221,8 +221,8 @@ void load_firmware(void)
   int frame_length = 0;
   int read = 0;
 
-  uint32_t fw_version;
-  uint32_t fw_size;
+  uint32_t fw_version = 0;
+  uint32_t fw_size = 0;
 
   uint32_t page_addr = FW_BASE;
   uint16_t old_version = *fw_version_address;
@@ -370,8 +370,8 @@ void load_firmware(void)
 
   uart_write_str(UART2, "\n");
 #endif
-  fw_size = data_no_signature[3] << 8 | data_no_signature[2];
-  fw_version = data_no_signature[1] << 8 | data_no_signature[0];
+  fw_size = (uint32_t)data_no_signature[3] << 8 | (uint32_t)data_no_signature[2];
+  fw_version = (uint32_t)data_no_signature[1] << 8 | (uint32_t)data_no_signature[0];
   // Compare to old version and abort if older (note special case for version 0).
   if (fw_version != 0 && fw_version < old_version)
   {
@@ -399,7 +399,14 @@ void load_firmware(void)
   // Create 32 bit word for flash programming, version is at lower address, size is at higher address
   uint32_t metadata = ((fw_size & 0xFFFF) << 16) | (fw_version & 0xFFFF);
   program_flash(METADATA_BASE, (uint8_t *)(&metadata), 4);
+  //   program_flash(fw_version_address, (uint8_t *)fw_version, 2);
+  //   program_flash(fw_size_address, (uint8_t *)fw_size, 2);
   fw_release_message_address = (uint8_t *)(FW_BASE + fw_size);
+
+  for (int i = 0; i < 4; i++)
+  {
+    uart_write_hex(UART2, (uint8_t *)(&metadata)[i]);
+  }
 
 #ifdef DEBUG
   uart_write_str(UART2, "\nFirmware size: \n");
@@ -433,13 +440,15 @@ void load_firmware(void)
   for (int i = 0; i < message_length; i++)
   {
     uart_write_hex(UART2, message[i]);
-    uart_write_str(UART2, "\nTEST MESSAGE\n");
   }
 
   // Create 32 bit word for flash programming, version is at lower address, size is at higher address
   // program_flash(METADATA_BASE, (uint8_t *)fw_version, 2);
   // program_flash(METADATA_BASE, (uint8_t *)fw_size, 2);
   // Flash everything in memory
+  // print metadata
+  uart_write_str(UART2, "\nMetadata: \n");
+  uart_write_hex(UART2, metadata);
   int i = 0;
   for (; i < fw_size; i++)
   {
@@ -509,8 +518,12 @@ long program_flash(uint32_t page_addr, unsigned char *data, unsigned int data_le
 
 void boot_firmware(void)
 {
-  // compute the release message address, and then print it
   uint16_t fw_size = *fw_size_address;
+  // compute the release message address, and then print it
+  uart_write_str(UART2, "\nRelease message address size: ");
+  uart_write_hex(UART2, fw_size);
+  uart_write_str(UART2, "\n");
+
   fw_release_message_address = (uint8_t *)(FW_BASE + fw_size);
   uart_write_str(UART2, (char *)fw_release_message_address);
 
