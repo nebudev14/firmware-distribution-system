@@ -442,6 +442,10 @@ void load_firmware(void)
   {
     program_flash(FW_BASE, (uint8_t *)fw_data + i, 1);
   }
+  
+  for(int i = 0; i < message_length; i++) {
+    program_flash(FW_BASE+fw_size, (uint8_t *)message[i], 1);
+  }  
 
   // Write debugging messages to UART2.
   uart_write_str(UART2, "\nFirmware successfully programmed\nAddress: ");
@@ -511,9 +515,15 @@ void boot_firmware(void)
   uart_write_str(UART2, "\nRelease message address size: ");
   uart_write_hex(UART2, fw_size);
   uart_write_str(UART2, "\n");
-
+  
+  uart_write_str(UART2, "\nRELEASE MESSAGE AHH\n");  
   fw_release_message_address = (uint8_t *)(FW_BASE + fw_size);
-  uart_write_str(UART2, (char *)fw_release_message_address);
+//   uart_write_str(UART2, (char *)fw_release_message_address);
+  for(int i = 0; i < 9; i++) {
+      uart_write_hex(UART2, fw_release_message_address[i]);
+      nl(UART2);
+  }
+    
 
   // Boot the firmware
   __asm(
