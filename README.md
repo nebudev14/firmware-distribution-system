@@ -22,6 +22,29 @@
 
 Team Arthur Intialization Vector Robinson presents: The Super Secure Embedded Bootloader Firmware Thing<sup>TM</sup>
 
+# Set up instructions
+
+Download the code to your machine using:
+
+  $ git clone https://github.com/embsec/design-challenge-2022-arthur-initialization-vector-robinson.git
+
+Update Pycryptodome to the latest version with:
+
+  $ python -m pip install -U pycryptodome
+
+Build firmware using
+
+  $ cd firmware/firmware
+  $ make
+
+Build the bootloader with
+
+  $ cd tools
+  $ python bl_build.py
+  $ python fw_protect.py --infile ../firmware/firmware/gcc/main.bin --outfile ../f_prot.bin --version 3 --message "this is a release message!"
+
+
+
 Frame Size:
 ```
 x represents some number of padding depends on the how large the encoding of firmware is
