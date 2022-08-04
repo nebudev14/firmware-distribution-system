@@ -26,25 +26,25 @@ Team Arthur Intialization Vector Robinson presents: The Super Secure Embedded Bo
 
 Download the code to your machine using:
 ```
-  $ git clone https://github.com/embsec/design-challenge-2022-arthur-initialization-vector-robinson.git
+$ git clone https://github.com/embsec/design-challenge-2022-arthur-initialization-vector-robinson.git
 ```
 
 Update Pycryptodome to the latest version with:
 ```
-  $ python -m pip install -U pycryptodome
+$ python -m pip install -U pycryptodome
 ```
 
 Build firmware using
 ```
-  $ cd firmware/firmware
-  $ make
+$ cd firmware/firmware
+$ make
 ```
 
 Build the bootloader with
 ```
-  $ cd tools
-  $ python bl_build.py
-  $ python fw_protect.py --infile ../firmware/firmware/gcc/main.bin --outfile ../f_prot.bin --version 3 --message "this is a release message!"
+$ cd tools
+$ python bl_build.py
+$ python fw_protect.py --infile ../firmware/firmware/gcc/main.bin --outfile ../f_prot.bin --version 3 --message "this is a release message!"
 ```
 
 
