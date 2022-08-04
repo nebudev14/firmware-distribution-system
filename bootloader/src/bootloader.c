@@ -384,12 +384,15 @@ void load_firmware(void)
   //   uart_write_str(UART2, "\nFirmware size: \n");
   //   uart_write_hex(UART2, fw_size);
   
+  // Firmware and message without metadata  
+  uint8_t *data_no_metadata = data_no_signature+4;  
+    
     // Find message length
   uint16_t message_length = 0;
   for (int i = fw_size; i < (frame_counter - 1) * FRAME_LENGTH; i++)
   {
-    if(data_no_signature[i] == '\0') {
-      message_length = i - (fw_size+4); // Subtract firmware size + metadata
+    if(data_no_metadata[i] == '\0') {
+      message_length = i - (fw_size); // Subtract firmware size + metadata
       break;
     }
   }
@@ -400,7 +403,7 @@ void load_firmware(void)
   // Store message in array
   unsigned char message[message_length];
   for(int i = 0; i < message_length; i++) {
-    message[i] = data_no_signature[i+fw_size+4];
+    message[i] = data_no_metadata[i+fw_size];
   }
   
   for(int i = 0; i < message_length; i++) {
