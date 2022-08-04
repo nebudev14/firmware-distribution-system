@@ -421,9 +421,24 @@ void load_firmware(void)
   }
 
   uart_write_hex(UART2, message_length);
+  uart_write_str(UART2, "\n");
 
-  // Write new firmware size and version to Flash
+  // Store message in array
+  unsigned char message[message_length];
+  for (int i = 0; i < message_length; i++)
+  {
+    message[i] = fw_data[i + fw_size];
+  }
 
+  for (int i = 0; i < message_length; i++)
+  {
+    uart_write_hex(UART2, message[i]);
+    uart_write_str(UART2, "\nTEST MESSAGE\n");
+  }
+
+  // Create 32 bit word for flash programming, version is at lower address, size is at higher address
+  program_flash(METADATA_BASE, (uint8_t *)version, 2);
+  program_flash(METADATA_BASE, (uint8_t *)fw_size, 2);
   // Flash everything in memory
   int i = 0;
   for (; i < fw_size; i++)

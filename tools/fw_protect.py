@@ -37,7 +37,7 @@ def protect_firmware(infile, outfile, version, message):
     # Pad firmware blob 
     firmware_blob = pad(firmware_blob, 64)
     
-    print(firmware_blob.hex())
+
     
     # Sign using ECC rfc8032
     ecc_key = ECC.import_key(priv_key)
